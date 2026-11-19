@@ -10,7 +10,7 @@ description = "Bounded, platform-independent no_std UI scenes, layout and render
 readme = "README.md"
 keywords = ["gui", "ui", "no-std", "layout", "project-z"]
 categories = ["gui", "no-std"]
-include = ["src/**", "examples/**", "benches/**", "README.md", "docs/**", "LICENSE", "Cargo.toml"]
+include = ["/src/**", "/examples/**", "/benches/**", "/README.md", "/docs/**", "/LICENSE", "/Cargo.toml"]
 
 [[bench]]
 name = "protocol"

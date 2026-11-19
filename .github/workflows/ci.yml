@@ -92,4 +92,23 @@ jobs:
               raise SystemExit("zgpui must have zero Cargo dependencies")
           print("zgpui has zero Cargo dependencies")
           PY
+      - name: Check package excludes ignored artifacts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          fixture = Path("artifacts/package-boundary-fixture/nested")
+          fixture.mkdir(parents=True, exist_ok=True)
+          for name in ("README.md", "LICENSE"):
+              (fixture / name).write_text("Ignored package boundary fixture\n")
+          files = set(subprocess.check_output(
+              ["cargo", "package", "--locked", "--list"], text=True,
+          ).splitlines())
+          leaked = sorted(path for path in files if path.startswith("artifacts/"))
+          missing = sorted({"README.md", "LICENSE"} - files)
+          if leaked or missing:
+              raise SystemExit(f"Invalid package contents: leaked={leaked}, missing={missing}")
+          print("Root README/LICENSE included; ignored artifacts excluded")
+          PY
       - run: cargo package --locked
