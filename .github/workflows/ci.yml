@@ -1,0 +1,95 @@
+name: Validate zgpui
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit or ref to validate (empty uses the selected revision)
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact candidate commit to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  core:
+    name: Core on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+      - name: Core unit tests
+        run: cargo test --locked --lib
+      - name: Documentation tests
+        run: cargo test --locked --doc
+      - name: Host contract example
+        run: cargo run --locked --example host
+
+  no-std:
+    name: Library on ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [wasm32-unknown-unknown, x86_64-unknown-none]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - run: cargo check --locked --lib --target ${{ matrix.target }}
+
+  quality:
+    name: Formatting, dependencies and package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Enforce zero Cargo dependencies
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import subprocess
+          data = json.loads(subprocess.check_output(
+              ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"],
+              text=True,
+          ))
+          packages = data["packages"]
+          if len(packages) != 1 or packages[0]["name"] != "zgpui":
+              raise SystemExit("Expected the standalone zgpui package")
+          if packages[0]["dependencies"]:
+              raise SystemExit("zgpui must have zero Cargo dependencies")
+          print("zgpui has zero Cargo dependencies")
+          PY
+      - run: cargo package --locked

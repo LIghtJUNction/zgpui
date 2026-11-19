@@ -1,0 +1,19 @@
+[package]
+name = "zgpui"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+license = "MIT"
+authors = ["LIghtJUNction"]
+repository = "https://github.com/LIghtJUNction/zgpui"
+description = "Bounded, platform-independent no_std UI scenes, layout and renderer contracts"
+readme = "README.md"
+keywords = ["gui", "ui", "no-std", "layout", "project-z"]
+categories = ["gui", "no-std"]
+include = ["src/**", "examples/**", "benches/**", "README.md", "docs/**", "LICENSE", "Cargo.toml"]
+
+[[bench]]
+name = "protocol"
+harness = false
+
+[workspace]
