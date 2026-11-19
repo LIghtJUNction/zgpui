@@ -1,0 +1,8 @@
+{
+  "gpui_upstream_sha": "a246423a3b24a08e0d0c8574eab3a9de422747e0",
+  "zgpui_baseline_sha": "1d796d1fc63808dc099ed7b10c92e75835ae2814",
+  "zgpui_library_tree": "cdcae0aefe0309cd92c5049650959b6f6572f128",
+  "patch_sha256": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07",
+  "patch_scope": "Public re-export of the production TaffyLayoutEngine; no algorithm changes. README notice required by upstream AGENTS.md.",
+  "upstream_layout_sha256": "48a3e432b8a28aaacca2ade807e3f69a80dec8eed9bc1e0e36be04edcfeb4f24"
+}

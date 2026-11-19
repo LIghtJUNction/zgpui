@@ -1,0 +1,23 @@
+diff --git i/README.md w/README.md
+index 9f641fb..8d7ccd1 100644
+--- i/README.md
++++ w/README.md
+@@ -1,3 +1,5 @@
++> [!IMPORTANT]
++> Remove this line to confirm you've reviewed this PR before submitting.
+ # Zed
+ 
+ [![Zed](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/zed-industries/zed/main/assets/badge/v0.json)](https://zed.dev)
+diff --git i/crates/gpui/src/gpui.rs w/crates/gpui/src/gpui.rs
+index abd966d..284305e 100644
+--- i/crates/gpui/src/gpui.rs
++++ w/crates/gpui/src/gpui.rs
+@@ -146,7 +146,7 @@ pub use style::*;
+ pub use styled::*;
+ pub use subscription::*;
+ pub use svg_renderer::*;
+-pub use taffy::{AvailableSpace, LayoutId};
++pub use taffy::{AvailableSpace, LayoutId, TaffyLayoutEngine};
+ pub use text_system::*;
+ pub use util::{FutureExt, Timeout};
+ pub use view::*;
