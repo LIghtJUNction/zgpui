@@ -290,11 +290,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let prefix = line(&mut window, 80);
     let long = line(&mut window, 400);
     assert!(prefix.0 > WIDTH as f32 && long.0 > prefix.0);
-    assert_eq!(
-        long.1, prefix.1,
-        "long text differs across a texture boundary"
-    );
+    save(directory, "prefix-text.ppm", &prefix.1)?;
     save(directory, "long-text.ppm", &long.1)?;
+    // Texture coordinates can round a filtered channel by one level on a
+    // different texture size. Match the GPU tile fixture's 2/255 tolerance.
+    let mut different_channels = 0;
+    let mut max_delta = 0;
+    for (actual, expected) in long.1.iter().zip(&prefix.1) {
+        let delta = actual.abs_diff(*expected);
+        different_channels += usize::from(delta != 0);
+        max_delta = max_delta.max(delta);
+    }
+    let comparison = format!(
+        "{{\"different_channels\":{different_channels},\"max_delta\":{max_delta},\"tolerance\":2}}"
+    );
+    println!("{comparison}");
+    fs::write(directory.join("long-text-comparison.json"), comparison)?;
+    assert!(
+        max_delta <= 2,
+        "long text differs across a texture boundary: {different_channels} channels, max delta {max_delta}/255"
+    );
 
     for invalid in ["bad\nfamily", "bad\0family", &"x".repeat(256)] {
         assert!(window.set_font_family(invalid).is_err());
