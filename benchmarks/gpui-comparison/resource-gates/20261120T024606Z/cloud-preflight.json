@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-20T02:46:06.350514+00:00",
+  "status": "prepared_not_built",
+  "scope": "Cloud preparation of the fixed CPU layout comparison; no timing samples, GPU execution, benchmark workflow or second heavy build.",
+  "decision": "The pinned CPU fixture has a plausible build path in this environment without GTK development packages. Full locked dependency acquisition and the actual release build remain unverified.",
+  "sources": {
+    "harness_commit": "a4e3efc5d69fb6a46678ff67e04099bf87b98ae9",
+    "cpu_checkpoint": "83369dbcea2ca7bca943a050dc2fa06869723f37",
+    "zgpui_baseline": "1d796d1fc63808dc099ed7b10c92e75835ae2814",
+    "zgpui_library_tree": "cdcae0aefe0309cd92c5049650959b6f6572f128",
+    "gpui_commit": "a246423a3b24a08e0d0c8574eab3a9de422747e0",
+    "gpui_version": "0.2.2",
+    "gpui_source_url": "https://github.com/zed-industries/zed/tree/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui",
+    "library_diff_from_baseline_empty": true,
+    "prepared_harness_worktree_clean": true,
+    "gpui_changed_paths": [
+      "README.md",
+      "crates/gpui/src/gpui.rs"
+    ],
+    "visibility_patch_only": true,
+    "visibility_patch_sha256": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07",
+    "upstream_layout_sha256": "48a3e432b8a28aaacca2ade807e3f69a80dec8eed9bc1e0e36be04edcfeb4f24",
+    "tracked_fixture_files": {
+      "Cargo.toml": {
+        "bytes": 487,
+        "sha256": "51118132e380bfbd5bfff9794f29a79369ffcceae642df6fe6f3bcee30470a55"
+      },
+      "Cargo.lock": {
+        "bytes": 100395,
+        "sha256": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490"
+      },
+      "prepare.py": {
+        "bytes": 4996,
+        "sha256": "48df82027c6d0bd209b2292cc18f5eea2f8af3165d3e20365b2e9728313dcda6"
+      },
+      "build.py": {
+        "bytes": 1608,
+        "sha256": "62ce606886f63192ef9be0c20fb0d97260d4a970d367f53645a4a9b5e7acd6c9"
+      },
+      "run.py": {
+        "bytes": 7912,
+        "sha256": "9b68bb624a96d6e5071c3cd8933294caab206be2bd7fb0d67417a07480fba9ba"
+      },
+      "src/main.rs": {
+        "bytes": 15141,
+        "sha256": "36cb446b2e797ddfdeb0cb198e1dafe645edec02dd93ce31029e184a986eba18"
+      },
+      "src/allocations.rs": {
+        "bytes": 2668,
+        "sha256": "e2db642aa61459a081d41a75bb6ff601a823d30c4e7469929d12626c44198312"
+      },
+      "gpui-layout-visibility.patch": {
+        "bytes": 805,
+        "sha256": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07"
+      },
+      "sources.json": {
+        "bytes": 530,
+        "sha256": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3"
+      }
+    }
+  },
+  "build_conditions": {
+    "rustc": "1.100.0",
+    "rustc_commit": "0ef1bc386059596dada8fb65b50425aab2ea637a",
+    "rustc_commit_date": "2026-11-09",
+    "llvm": "23.1.5",
+    "host": "x86_64-unknown-linux-gnu",
+    "release_profile": {
+      "opt-level": 3,
+      "lto": "thin",
+      "codegen-units": 1,
+      "debug": false
+    },
+    "upstream_default_features_preserved": true,
+    "gpui_extra_features": [
+      "test-support"
+    ],
+    "allocation_probe": "Separate executable using the existing allocation-metrics feature; not yet built.",
+    "jobs_for_later_build": 1,
+    "niceness_for_later_build": 19,
+    "rustflags_for_later_build": "",
+    "wrapper_policy": "The existing build.py clears RUSTC_WRAPPER and RUSTC_WORKSPACE_WRAPPER for its own command.",
+    "optional_environment_names_present": [],
+    "cloud_hard_cgroup_limit_claimed": false
+  },
+  "tool_inventory": {
+    "present": [
+      "gcc",
+      "cc",
+      "ar",
+      "ld",
+      "pkg-config",
+      "git",
+      "python3",
+      "official Rust 1.100.0"
+    ],
+    "not_found": [
+      "clang",
+      "cmake",
+      "ninja",
+      "sudo"
+    ],
+    "pkg_config_metadata_missing": [
+      "gtk+-3.0",
+      "x11",
+      "fontconfig",
+      "freetype2",
+      "xkbcommon",
+      "glib-2.0"
+    ],
+    "runtime_library_presence_not_inferred_from_missing_pc_files": true
+  },
+  "dependency_scope": {
+    "locked_package_records": 424,
+    "locked_dependencies_excluding_harness": 423,
+    "not_equal_to_enabled_linux_build_count": true,
+    "platform_renderer_or_gtk_packages_in_lock": [],
+    "gpui_core_platform_split": "The fixed harness depends on gpui core, not gpui_linux, gpui_platform or gpui_wgpu.",
+    "optional_capture_dependency": "Cargo.lock contains zed-scap and x11. The GPUI x11 feature uses scap?/x11, so it does not itself activate the optional screen-capture dependency. Cargo still requests its pinned source while resolving the full lock.",
+    "screen_capture_feature_added": false,
+    "dependency_versions_changed": false,
+    "registry_fetch_run": false
+  },
+  "source_preparation": {
+    "method": "Shallow immutable Git revisions plus a sparse GPUI checkout; no native target cache copied.",
+    "gpui_sparse_directories": [
+      "crates/gpui",
+      "crates/collections",
+      "crates/bench_metrics",
+      "crates/gpui_macros",
+      "crates/gpui_shared_string",
+      "crates/gpui_util",
+      "crates/http_client",
+      "crates/refineable",
+      "crates/scheduler",
+      "crates/sum_tree",
+      "crates/ztracing",
+      "crates/ztracing_macro",
+      "crates/zlog"
+    ],
+    "upstream_tree_selected_payload": {
+      "files": 240,
+      "bytes": 9725601,
+      "note": "Static Git tree sum for the selected source directories and root manifest/instruction/license files; not a memory measurement."
+    },
+    "prepare_script_result": "passed",
+    "patch_reproducibility": "The source files were identical. A repository-local diff.mnemonicPrefix=true reproduces the previously recorded i/ and w/ diff labels and exact patch bytes; compiler settings and algorithms are unchanged.",
+    "old_loose_cloud_copy_used": false
+  },
+  "checks": [
+    {
+      "name": "Pinned zgpui source and manifest versus baseline",
+      "status": "passed",
+      "method": "git diff baseline -- Cargo.toml src; no differences"
+    },
+    {
+      "name": "Locked dependency bytes",
+      "status": "passed",
+      "sha256": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490"
+    },
+    {
+      "name": "Upstream visibility-only preparation",
+      "status": "passed",
+      "algorithm_changes": 0
+    },
+    {
+      "name": "Offline top-level Cargo metadata",
+      "status": "passed",
+      "command_scope": "cargo metadata --no-deps --locked --offline --format-version 1",
+      "result_packages": 1,
+      "full_dependency_resolve": false
+    },
+    {
+      "name": "Full offline Linux dependency metadata",
+      "status": "blocked_missing_cached_source",
+      "exit_code": 101,
+      "missing": {
+        "package": "zed-scap",
+        "revision": "b5c86ec58dd4b6b7732bf6ac8be03d6b1f190a82",
+        "url": "https://github.com/zed-industries/scap"
+      },
+      "reason": "The pinned Git dependency is not in the cloud Cargo cache; --offline prevents checkout. This is not a compiler failure or a proven system-library blocker.",
+      "lock_changed": false
+    }
+  ],
+  "not_run": [
+    "Full locked dependency download",
+    "Timing executable release build",
+    "Geometry oracle execution",
+    "Allocation executable release build",
+    "Paired CPU samples",
+    "Native application startup comparison",
+    "Native input dispatch comparison",
+    "GPU rendering/readback",
+    "Any CI or artifact workflow"
+  ],
+  "next_steps_after_coordinator_releases_the_only_heavy_lane": [
+    "Fetch the exact locked Linux dependency sources with the existing Rust toolchain; retain Cargo.lock unchanged and resolve any actual platform requirement without disabling GPUI features.",
+    "Run the existing timing-only release build at jobs=1 and nice=19 in a task-private disk-backed target. Record actual resource monitoring; do not claim native systemd limits apply in cloud.",
+    "Verify every output rectangle and the deterministic geometry-scan oracle before collecting any sample.",
+    "Build the separate allocation probe under the same source/profile conditions.",
+    "Before transferring or measuring, hash the executables and record the actual host/toolchain. Any native result requires execution on the native host; cloud build or correctness alone is not a native performance result."
+  ],
+  "measurement_counts": {
+    "geometry_runs": 0,
+    "timing_samples": 0,
+    "allocation_samples": 0,
+    "gpu_frames": 0
+  },
+  "limitations": [
+    "The absence of a known external-library blocker is a feasibility assessment, not a completed build gate.",
+    "The root coordinator has not released the sole heavy-build lane; no benchmark compilation was started during this preparation.",
+    "No fastest, overall superiority, frame-time or memory-improvement claim is supported by this receipt.",
+    "GPU source preparation has a separate scope and dependency graph; it is not authorized by this CPU feasibility receipt."
+  ]
+}
