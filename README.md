@@ -74,6 +74,14 @@ scene API and its default features remain unchanged.
 [Native integration and migration](docs/native.md) covers features, system
 libraries, examples and the move from the former native UI package.
 
+## Headless pixels
+
+The source-only `zgpui-raster` companion in the repository's `raster/` directory draws bounded
+premultiplied ARGB pixels into caller-owned buffers and reuses the Linux system
+font implementation without linking X11 or OpenGL. It is consumed from a pinned
+repository checkout and is not independently published. The root crate remains
+the default workspace member; applications opt into the companion separately.
+
 ## Terminal adapter
 
 The existing **ZUI/1** wire prefix and revision rules are preserved.

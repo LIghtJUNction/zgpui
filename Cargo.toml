@@ -35,3 +35,5 @@ name = "protocol"
 harness = false
 
 [workspace]
+members = ["raster"]
+default-members = ["."]

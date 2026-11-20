@@ -29,7 +29,7 @@ Replace the old dependency key, package selection and vendor gitlink together:
 
 ```toml
 [dependencies]
-zgpui = { path = "vendor/zgpui", version = "=0.1.4", default-features = false, features = ["native"] }
+zgpui = { path = "vendor/zgpui", version = "=0.1.5", default-features = false, features = ["native"] }
 ```
 
 Use the `linux-software` feature for a Linux application that explicitly chooses
