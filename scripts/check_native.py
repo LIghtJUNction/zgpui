@@ -134,7 +134,29 @@ def main():
         if sys.platform == "linux":
             style_command = ["xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp", *style_command]
         run(*style_command, extra_env={"LIBGL_ALWAYS_SOFTWARE": "1"})
-        window_scope += "; real palette/input pixels, font switch/reset and sequential-window isolation"
+        style_output = output / (args.features + "-style")
+        run(sys.executable, "scripts/check_style.py",
+            str(style_output / "default.ppm"), str(style_output / "custom.ppm"))
+        if sys.platform == "linux" and not software:
+            legacy_output = output / "native-legacy-style"
+            run(
+                "xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp",
+                str(style), str(legacy_output), extra_env={
+                    "LIBGL_ALWAYS_SOFTWARE": "1", "MESA_GL_VERSION_OVERRIDE": "1.1",
+                    "MESA_EXTENSION_OVERRIDE": "-GL_ARB_texture_non_power_of_two",
+                },
+            )
+            run(sys.executable, "scripts/check_style.py",
+                str(legacy_output / "default.ppm"), str(legacy_output / "custom.ppm"))
+            run(
+                "xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp",
+                sys.executable, "scripts/test_gpu_masks.py", "-v",
+                extra_env={"LIBGL_ALWAYS_SOFTWARE": "1"},
+            )
+        window_scope += (
+            "; real glyph foreground/background and rounded corners; palette/input pixels, "
+            "long text, font switch/reset and sequential-window isolation"
+        )
     report = {
         "utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "platform": platform.system(),

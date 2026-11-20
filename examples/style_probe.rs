@@ -14,6 +14,64 @@ unsafe extern "system" {
     fn glFinish();
     fn glReadBuffer(buffer: u32);
     fn glReadPixels(x: i32, y: i32, w: i32, h: i32, format: u32, ty: u32, data: *mut u8);
+    fn glGetString(name: u32) -> *const u8;
+    fn glGetIntegerv(name: u32, value: *mut i32);
+    fn glGetError() -> u32;
+}
+
+#[cfg(not(all(target_os = "linux", feature = "linux-software")))]
+fn record_graphics(directory: &Path) -> std::io::Result<()> {
+    use std::ffi::CStr;
+    fn quoted(value: &str) -> String {
+        let mut out = String::from("\"");
+        for c in value.chars() {
+            match c {
+                '"' => out.push_str("\\\""),
+                '\\' => out.push_str("\\\\"),
+                c if c < ' ' => out.push_str(&format!("\\u{:04x}", c as u32)),
+                c => out.push(c),
+            }
+        }
+        out.push('"');
+        out
+    }
+    let string = |name| unsafe {
+        let pointer = glGetString(name);
+        assert!(!pointer.is_null(), "missing OpenGL context capability");
+        CStr::from_ptr(pointer.cast())
+            .to_string_lossy()
+            .into_owned()
+    };
+    let version = string(0x1f02);
+    let renderer = string(0x1f01);
+    let extensions = string(0x1f03);
+    let mut maximum = 0;
+    unsafe { glGetIntegerv(0x0d33, &mut maximum) };
+    assert!(
+        maximum >= 64,
+        "OpenGL texture limit is below its required minimum"
+    );
+    let npot = extensions
+        .split_whitespace()
+        .any(|x| x == "GL_ARB_texture_non_power_of_two");
+    let summary = format!(
+        "{{\"version\":{},\"renderer\":{},\"max_texture_size\":{},\"npot_extension\":{}}}",
+        quoted(&version),
+        quoted(&renderer),
+        maximum,
+        npot
+    );
+    println!("{summary}");
+    fs::write(
+        directory.join("graphics.json"),
+        format!(
+            "{{\"version\":{},\"renderer\":{},\"max_texture_size\":{},\"extensions\":{}}}\n",
+            quoted(&version),
+            quoted(&renderer),
+            maximum,
+            quoted(&extensions)
+        ),
+    )
 }
 
 fn pixels() -> Vec<u8> {
@@ -46,6 +104,7 @@ fn pixels() -> Vec<u8> {
             0x1401,
             raw.as_mut_ptr(),
         );
+        assert_eq!(glGetError(), 0, "OpenGL rendering or readback failed");
         for y in 0..HEIGHT {
             result[y * WIDTH * 4..(y + 1) * WIDTH * 4]
                 .copy_from_slice(&raw[(HEIGHT - 1 - y) * WIDTH * 4..(HEIGHT - y) * WIDTH * 4]);
@@ -168,6 +227,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let directory = Path::new(&output);
     fs::create_dir_all(directory)?;
     let mut window = Window::new("zgpui-style-probe", WIDTH as i32, HEIGHT as i32)?;
+    #[cfg(not(all(target_os = "linux", feature = "linux-software")))]
+    record_graphics(directory)?;
     assert!(Window::new("second window must be rejected", 100, 100).is_err());
     let default_widths = widths(&mut window);
     let baseline = scene(&mut window);
@@ -213,6 +274,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert!(white_text > 12, "primary text was remapped as a surface");
     save(directory, "custom.ppm", &styled)?;
     window.present();
+
+    // A long line must retain metrics and visible pixels when the driver needs
+    // several smaller textures. The prefix covers the complete viewport.
+    let line = |window: &mut Window, count| {
+        let advance = {
+            let mut canvas = window.begin(colors::BG);
+            let text = "M".repeat(count);
+            let advance = canvas.measure(&text, 20, false);
+            canvas.text(&text, 20., 150., 20, false, colors::TEXT);
+            advance
+        };
+        (advance, pixels())
+    };
+    let prefix = line(&mut window, 80);
+    let long = line(&mut window, 400);
+    assert!(prefix.0 > WIDTH as f32 && long.0 > prefix.0);
+    assert_eq!(
+        long.1, prefix.1,
+        "long text differs across a texture boundary"
+    );
+    save(directory, "long-text.ppm", &long.1)?;
 
     for invalid in ["bad\nfamily", "bad\0family", &"x".repeat(256)] {
         assert!(window.set_font_family(invalid).is_err());

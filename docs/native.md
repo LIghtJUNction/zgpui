@@ -144,6 +144,24 @@ FreeType faces. Matching retains system and user aliases and default-language
 settings. Fonts added only to a host's in-memory Fontconfig configuration are
 not inherited by the private matching configuration.
 
+## OpenGL mask storage
+
+The native GPU renderer uploads text and rounded-corner alpha masks with
+power-of-two storage dimensions, including on legacy OpenGL 1.1 drivers.
+This follows the platform's [texture size contract](https://learn.microsoft.com/en-us/windows/win32/opengl/glteximage2d).
+Texture coordinates select only the populated mask. The renderer reads
+`GL_MAX_TEXTURE_SIZE` and divides larger text masks into bounded tiles; adjacent
+tiles include neighbour pixels so linear filtering at fractional positions does
+not introduce a seam. Text advance and the original rasterization limits remain
+unchanged.
+
+The text cache allows at most 96 entries and 2 MiB of uploaded alpha texels,
+counting padding and tile borders. This is an accounting bound on those uploads,
+not a bound on total driver memory, fonts or the application. Rounded masks use
+a separate fixed cache. A failed upload releases all tiles created for that
+entry and does not cache an invalid texture. Closing the window releases both
+texture caches and resets the remembered device limit.
+
 ## CPU frame lifetime
 
 The Linux CPU backend keeps its framebuffer in a dedicated private anonymous
@@ -200,7 +218,10 @@ Native window checks under Xvfb do not measure hardware GPU performance or
 establish a whole-application memory limit.
 
 The native release gate also runs `style_probe` on Linux, Windows and macOS.
-It reads actual rendered pixels for primary-button text, disabled controls,
+It records the actual OpenGL version, renderer, extensions and maximum texture
+size for GPU builds. Pixel checks require glyph foreground and background and
+transparent rounded corners, so a solid text rectangle cannot pass as text.
+It also reads actual pixels for primary-button text, disabled controls,
 input focus and selection, alpha and custom colors. It changes font families,
 checks fixed-width advances, rejects invalid names without changing the active
 font, restores the original frame, and closes/reopens a window to check default
@@ -209,6 +230,13 @@ forces font preparation to fail, verifies that cached text and framebuffer
 storage survive, and repeatedly changes fonts while retaining host Fontconfig
 ownership. These checks exercise rendering and resource lifetimes rather than
 only comparing palette constants.
+
+The Linux GPU gate additionally exercises a real GL 1.1 context with the NPOT
+extension disabled. A separate fixture constrains texture limits to 256 and 64,
+compares the same complete viewport at fractional text positions and scaling, verifies the
+actual padded-upload budget, and injects an upload failure after the first tile
+to check cleanup and recovery. These cases use a private software GL context;
+they do not establish hardware GPU performance.
 
 The frozen native import and original file hashes are recorded in
 [native-import.json](native-import.json). Historical source names in that
