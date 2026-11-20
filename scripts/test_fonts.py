@@ -86,11 +86,11 @@ static void measurement(void) {
             float advance=zgpui_text_advance(samples[i],size,bold);
             /* Independently preserve the pre-optimization rendered-glyph width. */
             float rendered_advance=0;
-            FT_Face regular=face_for('A',size,bold);assert(regular);
+            FT_Face regular=face_for_state(&fonts,'A',size,bold);assert(regular);
             const unsigned char *p=(const unsigned char*)samples[i];
             while(*p){
                 uint32_t cp=codepoint(&p);
-                FT_Face face=FT_Get_Char_Index(regular,cp)?regular:face_for(cp,size,bold);
+                FT_Face face=FT_Get_Char_Index(regular,cp)?regular:face_for_state(&fonts,cp,size,bold);
                 if(face&&!FT_Load_Char(face,cp,FT_LOAD_RENDER))
                     rendered_advance+=(float)(face->glyph->advance.x>>6);
             }
@@ -119,7 +119,7 @@ static void matching(void) {
             FcChar8 *path=NULL;int index=0;
             assert(FcPatternGetString(expected,FC_FILE,0,&path)==FcResultMatch);
             assert(FcPatternGetInteger(expected,FC_INDEX,0,&index)==FcResultMatch);
-            FT_Face face=face_for(samples[s],19,bold);
+            FT_Face face=face_for_state(&fonts,samples[s],19,bold);
             assert(face && fonts.count==1);
             if(strcmp(fonts.paths[0],(char *)path) || fonts.indices[0]!=index) {
                 fprintf(stderr,"U+%04x weight=%d expected %s#%d, got %s#%d\n",
@@ -163,12 +163,12 @@ static void caching(void) {
     assert(config_loads==loaded && config_loads==config_destroys);
 }
 static void shared_weight(void) {
-    FT_Face regular=face_for('A',18,0);
-    FT_Face bold=face_for('A',18,1);
+    FT_Face regular=face_for_state(&fonts,'A',18,0);
+    FT_Face bold=face_for_state(&fonts,'A',18,1);
     assert(regular && bold && regular==bold && fonts.count==1);
     int loaded=config_loads;
-    assert(face_for('Z',18,1)==bold);
-    assert(face_for('Z',24,0)==regular);
+    assert(face_for_state(&fonts,'Z',18,1)==bold);
+    assert(face_for_state(&fonts,'Z',24,0)==regular);
     assert(config_loads==loaded && config_loads==config_destroys);
 }
 static void host_config(void) {
