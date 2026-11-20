@@ -5,14 +5,17 @@ It verifies every output rectangle against an independent integer geometry oracl
 before recording any sample. It does **not** establish that the two libraries
 provide equivalent desktop frameworks.
 
-**Checkpoint status:** the first cloud CPU release build passed with the fixed
-sources and profile. Its geometry gate rejected the fixture's auto-width GPUI
-root: one leaf measured zero pixels wide instead of the independently expected
-32 pixels. The failed binary and source-bound receipt are retained in
-`resource-gates/20261120T030008Z/build-and-geometry.json`. The fixture now declares
-100% root width; this correction awaits the same geometry gate. The earlier
-native build remains paused. No performance sample has been collected, and
-there are no measured winner, frame-time or allocation claims.
+**Checkpoint status:** cloud CPU release builds passed with the fixed libraries
+and profile; geometry gates exposed two fixture input mismatches. An auto-width
+GPUI root first produced a zero-width leaf; after declaring 100% root width, the
+test window's default 2x scale produced 64 pixels instead of the independently
+expected 32. Both failed binaries and source-bound receipts are retained in
+`resource-gates/20261120T030008Z/build-and-geometry.json` and
+`resource-gates/20261120T031258Z/build-and-geometry.json`. The fixture now declares
+100% root width and initializes the test window at 1x scale before requesting
+layout. This correction awaits the unchanged geometry gate. The earlier native
+build remains paused. No performance sample has been collected, and there are
+no measured winner, frame-time or allocation claims.
 
 ## Fixed sources and build
 
@@ -61,6 +64,14 @@ that width. GPUI's production
 handles this separately through `stretch_auto_size_to_fill`. Using a percentage
 in this retained fixture also lets each resize resolve against the new viewport;
 the independent expected rectangles and normal layout cache remain unchanged.
+
+The CPU fixture uses scale factor 1, so its logical and device-pixel coordinates
+coincide. GPUI's test window defaults to scale factor 2; its public
+[test scale-factor API](https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/window.rs)
+sets the fixture window to 1 during setup, before any layout request or cached
+geometry. This matches the scale already used for style conversion and bounds
+readback. Verification and measurement setup use the same setting, outside the
+timed iteration loop; the normal warmup precedes samples.
 
 | Workload | Measured work | Boundary |
 |---|---|---|

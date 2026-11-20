@@ -296,10 +296,11 @@ fn gpui_geometry_scan(bounds: &[Bounds<Pixels>], x: i32, y: i32) -> u64 {
 
 fn verify(case: Case) {
     let scene = z_scene(case);
-    let mut gpui = GFixture::new(case);
     let mut app = TestAppContext::single();
     let window = app.add_empty_window();
     window.update(|window, app| {
+        window.set_scale_factor(1.);
+        let mut gpui = GFixture::new(case);
         for variant in [0, 1, 0, 2, 1] {
             let expected = case.expected(variant);
             let mut zgpui_rectangles = Vec::new();
@@ -411,10 +412,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             checksum(black_box(&rectangles))
         })
     } else {
-        let mut fixture = GFixture::new(case);
         let mut app = TestAppContext::single();
         let window = app.add_empty_window();
         window.update(|window, app| {
+            window.set_scale_factor(1.);
+            let mut fixture = GFixture::new(case);
             fixture.layout(0, window, app, &mut rectangles);
             let hit_bounds: Vec<Bounds<Pixels>> = rectangles
                 .iter()

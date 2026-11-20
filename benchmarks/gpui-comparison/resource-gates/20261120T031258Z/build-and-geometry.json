@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "status": "build_passed_geometry_failed",
+  "source": "36689a61901bd6fa05f1e1cfed4e4b25149605c0",
+  "at_utc": "2026-11-20T03:16:35.167945+00:00",
+  "scope": "Fixed CPU harness build and correctness gate; no performance samples.",
+  "build_profile": {
+    "rustc": "1.100.0",
+    "opt_level": 3,
+    "lto": "thin",
+    "codegen_units": 1
+  },
+  "fixed_lock_sha256": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+  "fixed_visibility_patch_sha256": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07",
+  "binary": {
+    "bytes": 7010096,
+    "sha256": "0e1c2a3cb4b921306ca0f1838a8dcd3705464ad0b1921f5096bfbb01e894f575"
+  },
+  "source_and_lock_checks_after_each_stage": "passed",
+  "control_cell": "g4:57",
+  "transport_error": null,
+  "kernel_cgroup_claimed": false,
+  "resource_monitor": {
+    "kind": "Userspace polling of own process-group RSS and host MemAvailable",
+    "poll_seconds": 1,
+    "rss_stop_bytes": 4294967296,
+    "host_floor_bytes": 3221225472,
+    "admission_bytes": 7784628224,
+    "max_seconds": 3000,
+    "stages": [
+      {
+        "stage": "build",
+        "status": "passed",
+        "exit_code": 0,
+        "wall_seconds": 215.8225578940037,
+        "peak_process_group_rss_bytes": 1795284992,
+        "minimum_host_mem_available_bytes": 7885103104,
+        "stdout_sha256": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3",
+        "stderr_sha256": "1c0e5a4e0f86e2d4ea670ad7763f0eb80c35773f6e890e8184616f17b138be66"
+      },
+      {
+        "stage": "geometry",
+        "status": "command_failed",
+        "exit_code": 101,
+        "wall_seconds": 1.006453373003751,
+        "peak_process_group_rss_bytes": 4173824,
+        "minimum_host_mem_available_bytes": 9311322112,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "a623a0a674b34b38be5989dc0b5aafe3d339dd8b5802fe02a5620b02843bfe47"
+      }
+    ]
+  },
+  "geometry_failure": {
+    "first_case_leaves": 1,
+    "expected_rectangles": [
+      [
+        0,
+        0,
+        32,
+        24
+      ]
+    ],
+    "gpui_rectangles": [
+      [
+        0,
+        0,
+        64,
+        24
+      ]
+    ],
+    "zgpui_matched_oracle_before_gpui_assertion": true,
+    "exit_code": 101,
+    "classification": "Fixture device-scale mismatch; not a GPUI library correctness or performance claim.",
+    "source_reason": "TestWindowState defaults to scale_factor 2.0. request_layout and layout_bounds used 1.0, while compute_layout multiplied the available width by the Window scale factor 2.0.",
+    "proposed_correction": "Use the public Window::set_scale_factor(1.0) during both verification and measurement setup, before the first layout request, and never in the iteration loop.",
+    "correction_validated": false
+  },
+  "measurement_counts": {
+    "timing_samples": 0,
+    "allocation_samples": 0,
+    "gpu_frames": 0
+  },
+  "receipt_hashes": [
+    {
+      "label": "plan.json",
+      "sha256": "403212959ed2c7855d7b8ff1626f125ea35cc50a5f8766a5872f3bb9953edc6a"
+    },
+    {
+      "label": "supervisor.py",
+      "sha256": "635f8ec0300419a79e19ee506feba2449d7416530e34e01a5e804c3073a060e6"
+    },
+    {
+      "label": "admission.json",
+      "sha256": "f5af3b14e448e0335edca1082a38907508799ad4e72af9c96b146fa9dd32ab3d"
+    },
+    {
+      "label": "build.json",
+      "sha256": "0ed560655550b02235a40cda7f7c0923c6bbd63b8bebea4b07d8c63050e105fc"
+    },
+    {
+      "label": "geometry.json",
+      "sha256": "9a04c89fe24656fe212a784c3994f6322f4fc17c35f6af58a1daaf4bcf321a80"
+    },
+    {
+      "label": "result.json",
+      "sha256": "66b54e45beb554b75c181533db3c9e349321ef190d51fa20bc35596c3a32ca84"
+    },
+    {
+      "label": "controller.json",
+      "sha256": "b4db88a34476367f64be4eb0c209b40a9d893927438b651b81228678f078307a"
+    }
+  ],
+  "upstream_evidence": [
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/platform/test/window.rs",
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/window.rs",
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/taffy.rs"
+  ],
+  "fixture_source_hashes": {
+    "Cargo.toml": "51118132e380bfbd5bfff9794f29a79369ffcceae642df6fe6f3bcee30470a55",
+    "Cargo.lock": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+    "build.py": "62ce606886f63192ef9be0c20fb0d97260d4a970d367f53645a4a9b5e7acd6c9",
+    "prepare.py": "48df82027c6d0bd209b2292cc18f5eea2f8af3165d3e20365b2e9728313dcda6",
+    "run.py": "9b68bb624a96d6e5071c3cd8933294caab206be2bd7fb0d67417a07480fba9ba",
+    "src/main.rs": "fd42296a64353ad6489f71e9792bfd4266fb8b5dfb3db561a542da8f92020b0a",
+    "src/allocations.rs": "e2db642aa61459a081d41a75bb6ff601a823d30c4e7469929d12626c44198312",
+    "sources.json": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3",
+    "gpui-layout-visibility.patch": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07"
+  }
+}
