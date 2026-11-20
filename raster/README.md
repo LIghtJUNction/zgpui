@@ -86,6 +86,10 @@ its live font state separate. Fontconfig fallback follows the host's existing
 configuration. Rendering handles scalar glyphs; complex-script shaping and
 bidirectional layout are outside this API.
 
+The shared bridge converts monochrome, 2-bit, 4-bit, and 8-bit grayscale
+glyphs to coverage, including negative row pitch. Color and subpixel bitmap
+formats are rejected; this interface does not provide color-emoji rendering.
+
 ## Local verification
 
 Run from the repository root:

@@ -93,6 +93,30 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  raster:
+    name: Headless raster companion on Linux
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_JOBS: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+          components: clippy
+      - name: Linux font development packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libfreetype6-dev libfontconfig1-dev fonts-liberation fonts-noto-cjk
+      - run: cargo test --locked -p zgpui-raster
+      - run: cargo test --locked -p zgpui-raster --no-default-features
+      - run: cargo clippy --locked -p zgpui-raster --all-targets -- -D warnings
+      - name: Draw without a display connection
+        run: env -u DISPLAY -u WAYLAND_DISPLAY cargo run --locked -p zgpui-raster --example headless -- target/headless.ppm
+
   no-std:
     name: Library on ${{ matrix.target }}
     runs-on: ubuntu-latest
@@ -135,12 +159,16 @@ jobs:
               ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"],
               text=True,
           ))
-          packages = data["packages"]
-          if len(packages) != 1 or packages[0]["name"] != "zgpui":
-              raise SystemExit("Expected the standalone zgpui package")
-          if packages[0]["dependencies"]:
-              raise SystemExit("zgpui must have zero Cargo dependencies")
-          print("zgpui has zero Cargo dependencies")
+          packages = {package["name"]: package for package in data["packages"]}
+          if set(packages) != {"zgpui", "zgpui-raster"}:
+              raise SystemExit("Expected the core and source-only raster companion")
+          if any(package["dependencies"] for package in packages.values()):
+              raise SystemExit("zgpui packages must have zero Cargo dependencies")
+          if packages["zgpui-raster"]["publish"] != []:
+              raise SystemExit("The raster companion must remain source-only")
+          if data["workspace_default_members"] != [packages["zgpui"]["id"]]:
+              raise SystemExit("Default workspace commands must select only the core")
+          print("Zero Cargo dependencies; source-only companion; core-only defaults")
           PY
       - name: Check package excludes ignored artifacts
         shell: bash
@@ -155,9 +183,9 @@ jobs:
           files = set(subprocess.check_output(
               ["cargo", "package", "--locked", "--list"], text=True,
           ).splitlines())
-          leaked = sorted(path for path in files if path.startswith("artifacts/"))
+          leaked = sorted(path for path in files if path.startswith(("artifacts/", "raster/")))
           required = {"README.md", "LICENSE", "build.rs", "src/native.rs",
-                      "native/zgpui.h", "native/linux.c", "native/windows.c",
+                      "native/zgpui.h", "native/font_linux.h", "native/linux.c", "native/windows.c",
                       "native/macos.m", "native/draw.c", "native/draw_software.c",
                       "scripts/check_x11.py", "scripts/test_software.py", "scripts/test_fonts.py",
                       "scripts/test_software_x11.py",

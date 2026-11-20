@@ -126,6 +126,45 @@ static float font_text_advance(FontState *state,const char *text,int size,int bo
     }
     return (float)width;
 }
+/* FreeType width counts pixels, while pitch counts bytes. Embedded glyphs may
+ * be packed, and a negative pitch stores the bottom row first. Keep the same
+ * bounded coverage representation for native windows and the Rust bridge.
+ * Unsupported color/subpixel formats are rejected rather than read as gray. */
+static int font_bitmap_copy(ZgpuiBitmap *out,const FT_Bitmap *bitmap,int64_t x,int64_t y){
+    if(!bitmap->width||!bitmap->rows)return 1;
+    if(!bitmap->buffer||bitmap->width>8192||bitmap->rows>256)return 0;
+    unsigned int bits,levels;
+    switch(bitmap->pixel_mode){
+        case FT_PIXEL_MODE_MONO:bits=1;levels=2;break;
+        case FT_PIXEL_MODE_GRAY2:bits=2;levels=4;break;
+        case FT_PIXEL_MODE_GRAY4:bits=4;levels=16;break;
+        case FT_PIXEL_MODE_GRAY:
+            bits=8;levels=bitmap->num_grays;
+            if(levels<2||levels>256)return 0;
+            break;
+        default:return 0;
+    }
+    int64_t signed_pitch=bitmap->pitch;
+    size_t pitch=(size_t)(signed_pitch<0?-signed_pitch:signed_pitch);
+    size_t row_bytes=((size_t)bitmap->width*bits+7)/8;
+    if(pitch<row_bytes||pitch>8192)return 0;
+    for(unsigned int row=0;row<bitmap->rows;row++){
+        int64_t dy=y+row;
+        if(dy<0||dy>=out->height)continue;
+        size_t source_row=signed_pitch<0?bitmap->rows-1-row:row;
+        const unsigned char *source=bitmap->buffer+source_row*pitch;
+        for(unsigned int col=0;col<bitmap->width;col++){
+            int64_t dx=x+col;
+            if(dx<0||dx>=out->width)continue;
+            size_t bit=(size_t)col*bits;
+            unsigned int value=(source[bit/8]>>(8-bits-bit%8))&((1u<<bits)-1);
+            if(value>=levels)value=levels-1;
+            unsigned int coverage=(value*255+(levels-1)/2)/(levels-1);
+            out->pixels[(size_t)dy*out->width+(size_t)dx]=(unsigned char)coverage;
+        }
+    }
+    return 1;
+}
 static ZgpuiBitmap font_rasterize(FontState *state,const char *text,int size,int bold){
     ZgpuiBitmap out={0};if(size<1||size>96)return out;FT_Face regular=face_for_state(state,'A',size,bold);if(!regular)return out;
     int ascent=(int)(regular->size->metrics.ascender>>6),descent=(int)(-regular->size->metrics.descender>>6);
@@ -135,10 +174,12 @@ static ZgpuiBitmap font_rasterize(FontState *state,const char *text,int size,int
     if(width<1||height<1||height>256)return out;
     out.pixels=calloc((size_t)width,height);if(!out.pixels)return out;
     out.width=width;out.height=height;out.advance=advance;
-    int x=1;const unsigned char *p=(const unsigned char*)text;
+    int64_t x=1;const unsigned char *p=(const unsigned char*)text;
     while(*p){uint32_t cp=codepoint(&p);FT_Face f=FT_Get_Char_Index(regular,cp)?regular:face_for_state(state,cp,size,bold);if(!f||FT_Load_Char(f,cp,FT_LOAD_RENDER))continue;FT_GlyphSlot g=f->glyph;
-        for(unsigned int row=0;row<g->bitmap.rows;row++)for(unsigned int col=0;col<g->bitmap.width;col++){int dx=x+g->bitmap_left+(int)col,dy=ascent-g->bitmap_top+(int)row+1;if(dx>=0&&dx<width&&dy>=0&&dy<height)out.pixels[(size_t)dy*width+dx]=g->bitmap.buffer[row*(unsigned int)g->bitmap.pitch+col];}
-        x+=(int)(g->advance.x>>6);
+        if(!font_bitmap_copy(&out,&g->bitmap,x+g->bitmap_left,(int64_t)ascent-g->bitmap_top+1)){
+            free(out.pixels);return (ZgpuiBitmap){0};
+        }
+        x+=g->advance.x>>6;
     }return out;
 }
 #endif

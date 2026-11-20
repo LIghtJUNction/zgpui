@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = r"""
 #include <assert.h>
 #include <fontconfig/fontconfig.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,6 +78,52 @@ static uint64_t bitmap_hash(ZgpuiBitmap b) {
     }
     assert(ink>0);
     return h;
+}
+static void bitmap_formats(void) {
+    unsigned char pixels[18]={0};
+    ZgpuiBitmap out={.pixels=pixels,.width=9,.height=2};
+    unsigned char mono[]={0x80,0x80,0x55,0x00};
+    unsigned char expected[]={255,0,0,0,0,0,0,0,255,0,255,0,255,0,255,0,255,0};
+    FT_Bitmap bitmap={.width=9,.rows=2,.pitch=2,.buffer=mono,.pixel_mode=FT_PIXEL_MODE_MONO};
+    assert(font_bitmap_copy(&out,&bitmap,0,0));
+    assert(!memcmp(pixels,expected,sizeof(pixels)));
+    unsigned char bottom_first[]={0x55,0x00,0x80,0x80};
+    bitmap.buffer=bottom_first;bitmap.pitch=-2;
+    memset(pixels,0,sizeof(pixels));
+    assert(font_bitmap_copy(&out,&bitmap,0,0));
+    assert(!memcmp(pixels,expected,sizeof(pixels)));
+
+    out.width=5;out.height=1;
+    unsigned char gray2[]={0x1b,0xc0};
+    bitmap=(FT_Bitmap){.width=5,.rows=1,.pitch=2,.buffer=gray2,.pixel_mode=FT_PIXEL_MODE_GRAY2};
+    assert(font_bitmap_copy(&out,&bitmap,0,0));
+    assert(!memcmp(pixels,(unsigned char[]){0,85,170,255,255},5));
+    unsigned char gray4[]={0x1f,0x80};
+    bitmap=(FT_Bitmap){.width=3,.rows=1,.pitch=2,.buffer=gray4,.pixel_mode=FT_PIXEL_MODE_GRAY4};
+    assert(font_bitmap_copy(&out,&bitmap,0,0));
+    assert(!memcmp(pixels,(unsigned char[]){17,255,136},3));
+
+    unsigned char gray[]={7,1,0,99,0,3,7,99};
+    out.width=3;out.height=2;
+    bitmap=(FT_Bitmap){.width=3,.rows=2,.pitch=-4,.buffer=gray,.pixel_mode=FT_PIXEL_MODE_GRAY,.num_grays=8};
+    assert(font_bitmap_copy(&out,&bitmap,0,0));
+    assert(!memcmp(pixels,(unsigned char[]){0,109,255,255,36,0},6));
+    memset(pixels,42,sizeof(pixels));
+    assert(font_bitmap_copy(&out,&bitmap,-1,-1));
+    assert(!memcmp(pixels,(unsigned char[]){36,0,42,42,42,42},6));
+
+    memset(pixels,42,sizeof(pixels));
+    bitmap.pitch=2;assert(!font_bitmap_copy(&out,&bitmap,0,0));
+    bitmap.pitch=INT_MIN;assert(!font_bitmap_copy(&out,&bitmap,0,0));
+    bitmap.pitch=4;bitmap.num_grays=1;assert(!font_bitmap_copy(&out,&bitmap,0,0));
+    bitmap.num_grays=256;bitmap.pixel_mode=FT_PIXEL_MODE_LCD;
+    assert(!font_bitmap_copy(&out,&bitmap,0,0));
+    bitmap.pixel_mode=FT_PIXEL_MODE_GRAY;bitmap.buffer=NULL;
+    assert(!font_bitmap_copy(&out,&bitmap,0,0));
+    bitmap.buffer=gray;bitmap.width=8193;assert(!font_bitmap_copy(&out,&bitmap,0,0));
+    bitmap.width=3;bitmap.rows=257;assert(!font_bitmap_copy(&out,&bitmap,0,0));
+    for(size_t i=0;i<sizeof(pixels);i++)assert(pixels[i]==42);
+    bitmap=(FT_Bitmap){0};assert(font_bitmap_copy(&out,&bitmap,0,0));
 }
 static void measurement(void) {
     const char *samples[]={"Window Backup Play 012345", "Minecraft 世界 备份 启动器",
@@ -255,6 +302,7 @@ static void window_probe(void) {
 int main(int argc,char **argv) {
     assert(argc==2);
     if(!strcmp(argv[1],"measurement"))measurement();
+    else if(!strcmp(argv[1],"bitmap-formats"))bitmap_formats();
     else if(!strcmp(argv[1],"matching"))matching();
     else if(!strcmp(argv[1],"caching"))caching();
     else if(!strcmp(argv[1],"shared-weight"))shared_weight();
@@ -384,6 +432,9 @@ class LinuxFontTests(unittest.TestCase):
 
     def test_measurement_matches_real_glyph_advance(self):
         self.run_case("measurement")
+
+    def test_packed_gray_negative_pitch_and_invalid_bitmap_bounds(self):
+        self.run_case("bitmap-formats")
 
     def test_locale_matching_uses_system_defaults(self):
         for environment in [
