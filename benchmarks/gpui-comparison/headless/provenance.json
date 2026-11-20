@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "status": "source_preparation_only",
+  "compiled": false,
+  "gpu_executed": false,
+  "timing_results": null,
+  "cpu_checkpoint": "83369dbcea2ca7bca943a050dc2fa06869723f37",
+  "zgpui_source": "1d796d1fc63808dc099ed7b10c92e75835ae2814",
+  "gpui_source": "a246423a3b24a08e0d0c8574eab3a9de422747e0",
+  "cpu_lock_sha256": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+  "cpu_lock_packages": 424,
+  "headless_lock": null,
+  "gpui_renderer_sha256": "2d237ad9032cea4469c809e87eb2f89c82f3ee66b5893a7a6254577992224257",
+  "observability_patch_sha256": "41df78c530102e3361061a80397f826b7767a02707be4d6ddafe9e4887b7e0d9",
+  "renderer_boundary": "shared upstream WgpuHeadlessRenderer; completed render plus readback",
+  "resource_gate": "local compilation and GPU execution remain paused; no benchmark workflow"
+}

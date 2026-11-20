@@ -1,0 +1,16 @@
+--- a/crates/gpui_wgpu/src/wgpu_renderer.rs
++++ b/crates/gpui_wgpu/src/wgpu_renderer.rs
+@@ -2285,3 +2285,13 @@
+ impl WgpuHeadlessRenderer {
++    /// Read-only benchmark provenance; no renderer behavior is changed.
++    pub fn benchmark_adapter_info(&self) -> wgpu::AdapterInfo {
++        self.context.adapter.get_info()
++    }
++
++    /// Read-only benchmark provenance for the real headless target.
++    pub fn benchmark_target_format(&self) -> wgpu::TextureFormat {
++        self.core.target_format
++    }
++
+     pub fn new() -> anyhow::Result<Self> {
+         let (context, target_format) = WgpuContext::new_headless()?;
