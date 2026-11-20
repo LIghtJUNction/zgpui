@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-11-20T00:38:00.867662+00:00",
+  "outcome": "resource_guard_stopped",
+  "geometry_executed": false,
+  "timing_samples": false,
+  "minimum_sample": {
+    "timestamp": "2026-11-20T00:36:58.667031+00:00",
+    "MemAvailable": 3091791872,
+    "memory.current": "795987968",
+    "memory.peak": "848125952",
+    "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0",
+    "memory.swap.current": "0",
+    "cpu.stat": "usage_usec 23740529\nuser_usec 20902079\nsystem_usec 2838449\nnice_usec 20966400\ncore_sched.force_idle_usec 0\nnr_periods 333\nnr_throttled 7\nthrottled_usec 6410\nnr_bursts 0\nburst_usec 0"
+  },
+  "owned_pids": [],
+  "cgroup_exists": false,
+  "current_MemAvailable": 2181795840,
+  "memory_psi": "some avg10=0.94 avg60=0.77 avg300=0.47 total=1108274397\nfull avg10=0.94 avg60=0.76 avg300=0.45 total=1045338459",
+  "io_psi": "some avg10=4.75 avg60=5.76 avg300=6.86 total=4015760373\nfull avg10=4.45 avg60=5.17 avg300=6.21 total=3447883321",
+  "timing_binary_exists": false,
+  "worker_result_exists": false,
+  "unit": {
+    "code": 0,
+    "stdout": "ActiveState=inactive\nSubState=dead\nResult=success\nControlGroup=",
+    "stderr": ""
+  },
+  "cache": {
+    "code": 0,
+    "stdout": "642500\t/home/lightjunction/Documents/GITHUB/project_z/dist/worktrees/zgpui-benchmark/benchmarks/gpui-comparison/.cache/target",
+    "stderr": ""
+  },
+  "git_status": {
+    "code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "source_sha": {
+    "code": 0,
+    "stdout": "892fce4ceb152bc0b0564543930e1ebf08161e6e",
+    "stderr": ""
+  }
+}

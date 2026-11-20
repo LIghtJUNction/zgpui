@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-11-20T00:36:25.452761+00:00",
+  "cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/projectz-gpui-cpu-20261120-003625-3257135.service",
+  "limits": {
+    "memory.high": "1610612736",
+    "memory.max": "2147483648",
+    "memory.swap.max": "0",
+    "cpu.max": "100000 100000"
+  },
+  "nice": 19,
+  "jobs": 1,
+  "MemAvailable": 5694017536,
+  "tmpdir": "/home/lightjunction/Documents/GITHUB/project_z/dist/worktrees/zgpui-benchmark/benchmarks/gpui-comparison/.cache/cpu-recovery-20261120T003625Z-3257135/tmp",
+  "timing_samples_enabled": false
+}

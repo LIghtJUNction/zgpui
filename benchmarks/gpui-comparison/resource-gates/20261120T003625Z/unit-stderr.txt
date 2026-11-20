@@ -1,0 +1,54 @@
+D-Bus property CPUAccounting is deprecated, ignoring assignment: CPUAccounting=yes
+Running as unit: projectz-gpui-cpu-20261120-003625-3257135.service
+   Compiling url v2.5.8
+   Compiling rand v0.9.5
+   Compiling icu_segmenter_data v2.4.0
+   Compiling heapless v0.9.4
+   Compiling tiny-skia v0.11.4
+   Compiling gpui v0.2.2 (/home/lightjunction/Documents/GITHUB/project_z/dist/benchmarks/zgpui-vs-gpui-20261120/zed/crates/gpui)
+   Compiling http-body v1.1.0
+   Compiling strum_macros v0.28.0
+   Compiling lyon_geom v1.0.20
+   Compiling gpui_util v0.1.0 (/home/lightjunction/Documents/GITHUB/project_z/dist/benchmarks/zgpui-vs-gpui-20261120/zed/crates/gpui_util)
+   Compiling futures-lite v2.6.1
+   Compiling png v0.18.1
+   Compiling rand v0.10.4
+   Compiling uuid v1.29.3
+   Compiling rgb v0.8.53
+   Compiling qoi v0.4.1
+   Compiling rand_xorshift v0.5.0
+   Compiling crossbeam-queue v0.3.14
+   Compiling concurrent-queue v2.5.0
+   Compiling smol_str v0.3.7
+   Compiling profiling-procmacros v1.0.18
+   Compiling enumn v0.1.14
+   Compiling derive_refineable v0.1.0 (/home/lightjunction/Documents/GITHUB/project_z/dist/benchmarks/zgpui-vs-gpui-20261120/zed/crates/refineable/derive_refineable)
+   Compiling thiserror-impl v2.0.21
+   Compiling unarray v0.1.4
+   Compiling static_assertions v1.1.0
+   Compiling svg_fmt v0.4.5
+   Compiling atomic v0.5.3
+   Compiling async-task v4.7.1
+   Compiling fixedbitset v0.5.9
+   Compiling web-time v1.1.0
+   Compiling core_detect v1.0.0
+   Compiling rustc-hash v2.1.3
+   Compiling pollster v0.2.5
+   Compiling postage v0.5.0
+   Compiling collections v0.1.0 (/home/lightjunction/Documents/GITHUB/project_z/dist/benchmarks/zgpui-vs-gpui-20261120/zed/crates/collections)
+   Compiling proptest v1.12.0
+   Compiling scheduler v0.1.0 (/home/lightjunction/Documents/GITHUB/project_z/dist/benchmarks/zgpui-vs-gpui-20261120/zed/crates/scheduler)
+   Compiling futures-concurrency v7.7.1
+   Compiling etagere v0.2.15
+   Compiling thiserror v2.0.21
+   Compiling refineable v0.1.0 (/home/lightjunction/Documents/GITHUB/project_z/dist/benchmarks/zgpui-vs-gpui-20261120/zed/crates/refineable)
+   Compiling accesskit v0.24.1
+   Compiling profiling v1.0.18
+   Compiling gpui_shared_string v0.1.0 (/home/lightjunction/Documents/GITHUB/project_z/dist/benchmarks/zgpui-vs-gpui-20261120/zed/crates/gpui_shared_string)
+   Compiling async-channel v2.5.0
+   Compiling image v0.25.10
+          Finished with result: success
+Main processes terminated with: code=killed, status=15/TERM
+               Service runtime: 33.263s
+             CPU time consumed: 23.749s
+                   Memory peak: 808.8M (swap: 0B)

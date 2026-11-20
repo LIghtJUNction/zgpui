@@ -1,0 +1,9 @@
+{
+  "unit": "projectz-gpui-cpu-20261120-003625-3257135.service",
+  "returncode": 0,
+  "stop_reason": "MemAvailable fell below reserved 3 GiB",
+  "minimum_MemAvailable": 3091791872,
+  "observed_memory_peak": 848125952,
+  "run": "/home/lightjunction/Documents/GITHUB/project_z/dist/worktrees/zgpui-benchmark/benchmarks/gpui-comparison/.cache/cpu-recovery-20261120T003625Z-3257135",
+  "final_unit_properties": "ActiveState=inactive\nSubState=dead\nResult=success\nExecMainCode=0\nExecMainStatus=0\nControlGroup=\nMemoryCurrent=[not set]\nMemoryPeak=[not set]\nMemorySwapPeak=[not set]\nCPUUsageNSec=[not set]\n"
+}

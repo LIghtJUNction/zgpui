@@ -1,0 +1,39 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "executables": {
+    "rustc": null,
+    "cargo": null,
+    "rustup": null,
+    "clang": null,
+    "cc": "/usr/bin/cc",
+    "pkg-config": "/usr/bin/pkg-config"
+  },
+  "cargo_cache_root": "/home/agent/.cargo",
+  "cache_metadata": {
+    "registry/src": {
+      "exists": false,
+      "entry_count": 0
+    },
+    "registry/cache": {
+      "exists": false,
+      "entry_count": 0
+    },
+    "registry/index": {
+      "exists": false,
+      "entry_count": 0
+    },
+    "git/checkouts": {
+      "exists": false,
+      "entry_count": 0
+    },
+    "bin": {
+      "exists": false,
+      "entry_count": 0
+    }
+  },
+  "memory": {
+    "MemTotal": 10451423232,
+    "MemAvailable": 9123221504
+  },
+  "action": "read-only; no downloads or compilation"
+}

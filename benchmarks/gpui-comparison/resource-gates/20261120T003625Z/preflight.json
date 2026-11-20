@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-11-20T00:36:25.403513+00:00",
+  "unit": "projectz-gpui-cpu-20261120-003625-3257135.service",
+  "run": "/home/lightjunction/Documents/GITHUB/project_z/dist/worktrees/zgpui-benchmark/benchmarks/gpui-comparison/.cache/cpu-recovery-20261120T003625Z-3257135",
+  "MemAvailable": 5696774144,
+  "reserve": 3221225472,
+  "hard_budget": 2147483648,
+  "startup_guard": 268435456,
+  "memory_psi": "some avg10=0.02 avg60=0.12 avg300=0.30 total=1107077076\nfull avg10=0.00 avg60=0.09 avg300=0.28 total=1044169446\n",
+  "io_psi": "some avg10=4.20 avg60=7.46 avg300=6.98 total=4008608537\nfull avg10=3.77 avg60=6.85 avg300=6.36 total=3441420825\n"
+}
