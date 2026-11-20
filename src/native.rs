@@ -19,6 +19,12 @@ unsafe extern "C" {
     fn zgpui_size(window: *mut c_void, width: *mut c_int, height: *mut c_int);
     fn zgpui_swap(window: *mut c_void);
     fn zgpui_clipboard(window: *mut c_void, text: *const c_char);
+    fn zgpui_set_font_family(
+        window: *mut c_void,
+        family: *const c_char,
+        error: *mut c_char,
+        capacity: usize,
+    ) -> c_int;
     fn zgpui_begin(width: c_int, height: c_int, background: u32);
     fn zgpui_rect(x: f32, y: f32, width: f32, height: f32, radius: f32, color: u32);
     fn zgpui_polygon(points: *const f32, count: usize, color: u32);
@@ -91,8 +97,96 @@ impl Theme {
         }
     }
 }
+
+/// Window-local semantic colors, encoded as `0xRRGGBBAA`.
+///
+/// Canvas primitives and immediate widgets resolve the built-in color tokens
+/// through this palette. Other custom colors are kept unchanged.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Palette {
+    pub background: u32,
+    pub surface: u32,
+    pub text: u32,
+    pub muted: u32,
+    pub line: u32,
+    pub accent: u32,
+    pub accent_hover: u32,
+    pub accent_soft: u32,
+    pub hover: u32,
+    pub success: u32,
+    pub success_soft: u32,
+    pub danger: u32,
+    pub danger_soft: u32,
+    pub disabled_surface: u32,
+    pub disabled_text: u32,
+    pub on_accent: u32,
+}
+impl Palette {
+    /// Start from the semantic roles of an existing theme, then change only
+    /// the roles your application needs. Unset palettes retain the original
+    /// theme behavior, including its legacy color aliases.
+    pub fn for_theme(theme: Theme) -> Self {
+        Self {
+            background: theme.color(colors::BG),
+            surface: theme.color(colors::SURFACE),
+            text: theme.color(colors::TEXT),
+            muted: theme.color(colors::MUTED),
+            line: theme.color(colors::LINE),
+            accent: theme.color(colors::BLUE),
+            accent_hover: theme.color(0x1765ccff),
+            accent_soft: theme.color(colors::BLUE_PALE),
+            hover: theme.color(0xf0f4faff),
+            success: theme.color(colors::GREEN),
+            success_soft: theme.color(0xe6f4eaff),
+            danger: theme.color(colors::RED),
+            danger_soft: theme.color(0xffeeedff),
+            disabled_surface: theme.color(0xeff2f6ff),
+            disabled_text: theme.color(0x9aa5b5ff),
+            on_accent: theme.color(colors::SURFACE),
+        }
+    }
+    /// Resolve one canonical color token. The token's alpha multiplies the
+    /// selected role's alpha; unrelated RGB values pass through unchanged.
+    pub fn color(self, value: u32) -> u32 {
+        let replacement = match value & 0xffffff00 {
+            0xf7f9fc00 | 0xf1f3f400 => self.background,
+            0xffffff00 => self.surface,
+            0x20212400 => self.text,
+            0x5f636800 => self.muted,
+            0xe8eaed00 | 0xe8edf300 => self.line,
+            0x1a73e800 => self.accent,
+            0x1765cc00 => self.accent_hover,
+            0xe8f0fe00 | 0xf5f8ff00 => self.accent_soft,
+            0xf0f4fa00 => self.hover,
+            0x147d4e00 => self.success,
+            0xe6f4ea00 => self.success_soft,
+            0xb4231800 => self.danger,
+            0xffe0de00 | 0xffeeed00 => self.danger_soft,
+            0xeff2f600 | 0xf2f4f700 => self.disabled_surface,
+            0x9aa5b500 | 0x9aa0a600 => self.disabled_text,
+            _ => return value,
+        };
+        (replacement & 0xffffff00) | (((replacement & 255) * (value & 255) + 127) / 255)
+    }
+}
+
+fn resolve_color(theme: Theme, palette: Option<Palette>, value: u32) -> u32 {
+    palette.map_or_else(|| theme.color(value), |palette| palette.color(value))
+}
+
+fn requested_font_family(value: &str) -> Result<String, String> {
+    if value.len() > 255 || value.chars().any(char::is_control) {
+        return Err(
+            "font family must be at most 255 UTF-8 bytes without control characters".into(),
+        );
+    }
+    Ok(value.trim().to_owned())
+}
+
 pub struct Window {
     theme: Theme,
+    palette: Option<Palette>,
+    font_family: String,
     raw: *mut c_void,
     _thread: PhantomData<Rc<()>>,
 }
@@ -130,12 +224,52 @@ impl Window {
         }
         Ok(Self {
             theme: Theme::Light,
+            palette: None,
+            font_family: String::new(),
             raw,
             _thread: PhantomData,
         })
     }
     pub fn set_theme(&mut self, theme: Theme) {
         self.theme = theme;
+    }
+    /// Override semantic colors for this window until `clear_palette`.
+    pub fn set_palette(&mut self, palette: Palette) {
+        self.palette = Some(palette);
+    }
+    /// Restore this window's selected built-in theme.
+    pub fn clear_palette(&mut self) {
+        self.palette = None;
+    }
+    /// Prefer a font family for this window. `monospace` selects the platform's
+    /// fixed-width family; an empty string restores the original default.
+    /// A missing named family falls back to monospace, with native glyph fallback.
+    ///
+    /// A successful change invalidates only text caches. Invalid names or native
+    /// preparation failures preserve the old family and cached text. Redraw the
+    /// window after changing its font. Repeating the same request is a no-op.
+    pub fn set_font_family(&mut self, family: &str) -> Result<(), String> {
+        let family = requested_font_family(family)?;
+        if family == self.font_family {
+            return Ok(());
+        }
+        let name = CString::new(family.as_str()).expect("validated font family");
+        let mut error = [0 as c_char; 1024];
+        if unsafe {
+            zgpui_set_font_family(self.raw, name.as_ptr(), error.as_mut_ptr(), error.len())
+        } == 0
+        {
+            let error = unsafe { CStr::from_ptr(error.as_ptr()) }
+                .to_string_lossy()
+                .into_owned();
+            return Err(if error.is_empty() {
+                "native font preparation failed".into()
+            } else {
+                error
+            });
+        }
+        self.font_family = family;
+        Ok(())
     }
     pub fn size(&self) -> (f32, f32) {
         let (mut width, mut height) = (0, 0);
@@ -178,9 +312,16 @@ impl Window {
     }
     pub fn begin(&mut self, background: u32) -> Canvas<'_> {
         let (width, height) = self.size();
-        unsafe { zgpui_begin(width as i32, height as i32, self.theme.color(background)) };
+        unsafe {
+            zgpui_begin(
+                width as i32,
+                height as i32,
+                resolve_color(self.theme, self.palette, background),
+            )
+        };
         Canvas {
             theme: self.theme,
+            palette: self.palette,
             width,
             height,
             _window: PhantomData,
@@ -230,24 +371,30 @@ impl Rect {
 }
 pub struct Canvas<'a> {
     pub theme: Theme,
+    palette: Option<Palette>,
     pub width: f32,
     pub height: f32,
     _window: PhantomData<&'a mut Window>,
 }
 impl Canvas<'_> {
+    fn color(&self, color: u32) -> u32 {
+        resolve_color(self.theme, self.palette, color)
+    }
     pub fn rect(&mut self, rect: Rect, radius: f32, color: u32) {
-        unsafe {
-            zgpui_rect(
-                rect.x,
-                rect.y,
-                rect.w,
-                rect.h,
-                radius,
-                self.theme.color(color),
-            )
-        }
+        unsafe { zgpui_rect(rect.x, rect.y, rect.w, rect.h, radius, self.color(color)) }
     }
     pub fn text(&mut self, text: &str, x: f32, y: f32, size: i32, bold: bool, color: u32) -> f32 {
+        self.text_resolved(text, x, y, size, bold, self.color(color))
+    }
+    fn text_resolved(
+        &mut self,
+        text: &str,
+        x: f32,
+        y: f32,
+        size: i32,
+        bold: bool,
+        color: u32,
+    ) -> f32 {
         let text = string(text);
         unsafe {
             zgpui_text(
@@ -256,7 +403,7 @@ impl Canvas<'_> {
                 y.round(),
                 size,
                 bold as i32,
-                self.theme.color(color),
+                color,
             )
         }
     }
@@ -269,19 +416,10 @@ impl Canvas<'_> {
         for &(x, y) in points {
             coordinates.extend([x, y]);
         }
-        unsafe { zgpui_polygon(coordinates.as_ptr(), points.len(), self.theme.color(color)) }
+        unsafe { zgpui_polygon(coordinates.as_ptr(), points.len(), self.color(color)) }
     }
     pub fn line(&mut self, from: (f32, f32), to: (f32, f32), width: f32, color: u32) {
-        unsafe {
-            zgpui_line(
-                from.0,
-                from.1,
-                to.0,
-                to.1,
-                width.max(0.),
-                self.theme.color(color),
-            )
-        }
+        unsafe { zgpui_line(from.0, from.1, to.0, to.1, width.max(0.), self.color(color)) }
     }
     pub fn measure(&self, text: &str, size: i32, bold: bool) -> f32 {
         let text = string(text);
@@ -471,7 +609,14 @@ impl Ui {
             canvas.rect(rect, 12., fill);
         }
         let width = canvas.measure(label, 15, false);
-        canvas.text(
+        let ink = if enabled && matches!(style, ButtonStyle::Primary) {
+            canvas
+                .palette
+                .map_or_else(|| canvas.color(ink), |palette| palette.on_accent)
+        } else {
+            canvas.color(ink)
+        };
+        canvas.text_resolved(
             label,
             rect.x + (rect.w - width) / 2.,
             rect.y + (rect.h - 19.) / 2.,

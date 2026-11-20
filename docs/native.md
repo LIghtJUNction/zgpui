@@ -29,7 +29,7 @@ Replace the old dependency key, package selection and vendor gitlink together:
 
 ```toml
 [dependencies]
-zgpui = { path = "vendor/zgpui", version = "=0.1.2", default-features = false, features = ["native"] }
+zgpui = { path = "vendor/zgpui", version = "=0.1.3", default-features = false, features = ["native"] }
 ```
 
 Use the `linux-software` feature for a Linux application that explicitly chooses
@@ -52,7 +52,7 @@ window.present();
 # }
 ```
 
-The public native types are `Window`, `Canvas`, `Event`, `Rect`, `Theme`, `Ui`,
+The public native types are `Window`, `Canvas`, `Event`, `Rect`, `Theme`, `Palette`, `Ui`,
 `ButtonStyle` and `colors`. `Window` stays on its creating thread and the backend
 allows one live window per process. `native::Rect` belongs to immediate drawing;
 `layout::Rect` belongs to the portable scene layout. A host implements a
@@ -62,6 +62,69 @@ Update `.gitmodules` to `https://github.com/LIghtJUNction/zgpui.git`, move the
 source directory to `vendor/zgpui`, pin the tested commit and regenerate the
 consumer lockfile. Rust calls use `zgpui::native`; do not retain a `zui` alias.
 Outer source bundles and installer repositories must update their own pins.
+
+## Optional window colors and fonts
+
+Version 0.1.3 adds a window-local palette and preferred font family. Existing
+applications that do not call these setters retain their original theme and
+font selection. The default `no_std` scene core and its dependency list are
+unchanged.
+
+```rust,no_run
+# fn main() -> Result<(), String> {
+# #[cfg(feature = "native")] {
+use zgpui::native::{Palette, Theme, Window};
+
+let mut window = Window::new("example", 640, 400)?;
+window.set_theme(Theme::Dark);
+let mut ink = Palette::for_theme(Theme::Dark);
+ink.background = 0x161412ff;
+ink.surface = 0x201c18ff;
+ink.text = 0xe8ded2ff;
+ink.accent = 0xd4a373ff;
+ink.on_accent = 0x161412ff;
+window.set_palette(ink);
+window.set_font_family("JetBrains Mono")?;
+# }
+# Ok(())
+# }
+```
+
+Palette fields use `0xRRGGBBAA`. The sixteen roles cover background, surface,
+text, muted text, lines, accent, hovered accent, soft accent, hovered surface,
+success and its soft surface, danger and its soft surface, disabled surface,
+disabled text, and text on an accent. Canvas primitives and the existing button
+and input widgets resolve canonical color tokens through the same palette.
+The token's alpha multiplies the selected role's alpha. Other RGB values pass
+through unchanged. Use `on_accent` for primary-button text; it is already
+resolved and is not interpreted again as a surface token.
+
+An explicit palette stays active when `set_theme` changes the built-in theme.
+Call `clear_palette` to return to that theme. `Palette::for_theme` initializes
+semantic roles from an existing theme; it groups legacy color aliases into
+their corresponding role. Leaving the palette unset preserves the original
+individual aliases exactly.
+
+`set_font_family("monospace")` selects the platform's fixed-width family.
+A missing named family falls back to that selection, and platform glyph fallback
+remains available for characters outside the chosen font. Linux honors installed
+Fontconfig aliases and language settings, Windows uses its installed family or
+Consolas/Courier New fallback, and macOS uses the requested family or its system
+monospaced font. The setter does not install fonts or change system preferences.
+
+Names may contain at most 255 UTF-8 bytes and no control characters. Surrounding
+whitespace is removed. An empty name resets the original default; repeating the
+same normalized request does no native work. Native preparation finishes before
+the old family is replaced. Failure returns an error and preserves the previous
+font and text cache. Success invalidates only text masks or textures, leaving
+geometry caches, framebuffer storage and the graphics context intact. Redraw
+the complete frame after a font change.
+
+Window access remains confined to its creating thread. The native bridge still
+allows only one live window per process; these setters do not introduce concurrent
+multiwindow support. Closing a window releases its font selection, so a later
+window starts with the original defaults. Fontconfig matching uses private
+temporary configurations and does not replace a host's process-wide configuration.
 
 ## Native build requirements
 
@@ -135,6 +198,17 @@ x11-utils and ImageMagick in addition to the native development libraries.
 These are validation requirements, separate from application runtime libraries.
 Native window checks under Xvfb do not measure hardware GPU performance or
 establish a whole-application memory limit.
+
+The native release gate also runs `style_probe` on Linux, Windows and macOS.
+It reads actual rendered pixels for primary-button text, disabled controls,
+input focus and selection, alpha and custom colors. It changes font families,
+checks fixed-width advances, rejects invalid names without changing the active
+font, restores the original frame, and closes/reopens a window to check default
+isolation. PPM frames accompany the result. The Linux sanitizer fixture also
+forces font preparation to fail, verifies that cached text and framebuffer
+storage survive, and repeatedly changes fonts while retaining host Fontconfig
+ownership. These checks exercise rendering and resource lifetimes rather than
+only comparing palette constants.
 
 The frozen native import and original file hashes are recorded in
 [native-import.json](native-import.json). Historical source names in that

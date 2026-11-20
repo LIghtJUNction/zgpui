@@ -155,21 +155,25 @@ int zgpui_event(ZgpuiWindow *w,ZgpuiEvent *out,int timeout){
         }
     }return 0;
 }
-static FT_Library library;
-static FT_Face faces[12];
-static char *paths[12];
-static int face_count;
-static unsigned int face_weights[12];
-static int face_indices[12];
-static FT_Face face_for(uint32_t cp,int size,int bold){
-    if(!library&&FT_Init_FreeType(&library))return NULL;
+typedef struct {
+    FT_Library library;
+    FT_Face faces[12];
+    char *paths[12];
+    int count;
+    unsigned int weights[12];
+    int indices[12];
+    char family[256];
+} FontState;
+static FontState fonts;
+static FT_Face face_for_state(FontState *state,uint32_t cp,int size,int bold){
+    if(!state->library&&FT_Init_FreeType(&state->library))return NULL;
     bold=!!bold;
     /* Reuse an already opened face before asking fontconfig to enumerate the
        installed fonts. A face owns its file independently of the match config. */
-    for(int i=0;i<face_count;i++){
-        if((face_weights[i]&(1u<<bold))&&FT_Get_Char_Index(faces[i],cp)){
-            FT_Set_Pixel_Sizes(faces[i],0,size);
-            return faces[i];
+    for(int i=0;i<state->count;i++){
+        if((state->weights[i]&(1u<<bold))&&FT_Get_Char_Index(state->faces[i],cp)){
+            FT_Set_Pixel_Sizes(state->faces[i],0,size);
+            return state->faces[i];
         }
     }
     /* A private, short-lived config avoids pinning every system font cache in
@@ -184,7 +188,9 @@ static FT_Face face_for(uint32_t cp,int size,int bold){
         FcConfigDestroy(config);
         return NULL;
     }
-    FcPatternAddString(pattern,FC_FAMILY,(const FcChar8*)"sans");
+    FcPatternAddString(pattern,FC_FAMILY,(const FcChar8*)(state->family[0]?state->family:"sans"));
+    if(state->family[0] && strcmp(state->family,"monospace"))
+        FcPatternAddString(pattern,FC_FAMILY,(const FcChar8*)"monospace");
     FcPatternAddInteger(pattern,FC_WEIGHT,bold?FC_WEIGHT_BOLD:FC_WEIGHT_REGULAR);
     FcCharSetAddChar(charset,cp);
     FcPatternAddCharSet(pattern,FC_CHARSET,charset);
@@ -215,19 +221,19 @@ static FT_Face face_for(uint32_t cp,int size,int bold){
         FcPatternGetString(match,FC_FILE,0,&path);
         FcPatternGetInteger(match,FC_INDEX,0,&index);
         if(path){
-            for(int i=0;i<face_count;i++){
-                if(face_indices[i]==index&&strcmp(paths[i],(const char*)path)==0){
-                    face_weights[i]|=1u<<bold;
-                    face=faces[i];break;
+            for(int i=0;i<state->count;i++){
+                if(state->indices[i]==index&&strcmp(state->paths[i],(const char*)path)==0){
+                    state->weights[i]|=1u<<bold;
+                    face=state->faces[i];break;
                 }
             }
-            if(!face&&face_count<12&&!FT_New_Face(library,(const char*)path,index,&face)){
+            if(!face&&state->count<12&&!FT_New_Face(state->library,(const char*)path,index,&face)){
                 char *owned=strdup((const char*)path);
                 if(owned){
-                    paths[face_count]=owned;
-                    face_indices[face_count]=index;
-                    face_weights[face_count]=1u<<bold;
-                    faces[face_count++]=face;
+                    state->paths[state->count]=owned;
+                    state->indices[state->count]=index;
+                    state->weights[state->count]=1u<<bold;
+                    state->faces[state->count++]=face;
                 }else{
                     FT_Done_Face(face);face=NULL;
                 }
@@ -242,6 +248,37 @@ static FT_Face face_for(uint32_t cp,int size,int bold){
 #endif
     if(face)FT_Set_Pixel_Sizes(face,0,size);
     return face;
+}
+static FT_Face face_for(uint32_t cp,int size,int bold){
+    return face_for_state(&fonts,cp,size,bold);
+}
+static void font_state_destroy(FontState *state){
+    for(int i=0;i<state->count;i++){FT_Done_Face(state->faces[i]);free(state->paths[i]);}
+    if(state->library)FT_Done_FreeType(state->library);
+    memset(state,0,sizeof(*state));
+}
+int zgpui_set_font_family(ZgpuiWindow *w,const char *family,char *error,size_t capacity){
+    if(!w || !w->display || !family){snprintf(error,capacity,"No active font window.");return 0;}
+    size_t length=0;
+    while(length<256 && family[length]){
+        unsigned char c=(unsigned char)family[length++];
+        if(c<32 || c==127){snprintf(error,capacity,"Invalid font family.");return 0;}
+    }
+    if(length>255){snprintf(error,capacity,"Font family is too long.");return 0;}
+    FontState next={0};memcpy(next.family,family,length+1);
+    /* Prepare independent faces first: a failed match never invalidates live text. */
+    if(!face_for_state(&next,'A',16,0) || !face_for_state(&next,'A',16,1)){
+        font_state_destroy(&next);snprintf(error,capacity,"Cannot prepare the requested font family.");return 0;
+    }
+#ifndef ZGPUI_SOFTWARE
+    if(!w->context || !glXMakeCurrent(w->display,w->window,w->context)){
+        font_state_destroy(&next);snprintf(error,capacity,"Cannot activate the font renderer.");return 0;
+    }
+#endif
+    zgpui_clear_text_cache();
+    FontState previous=fonts;fonts=next;
+    font_state_destroy(&previous);
+    return 1;
 }
 static uint32_t codepoint(const unsigned char **p){
     uint32_t c=*(*p)++;if(c<0x80)return c;unsigned int count=c<0xe0?1:c<0xf0?2:3;c&=(1u<<(6-count))-1;
@@ -259,4 +296,4 @@ ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold){
         x+=(int)(g->advance.x>>6);
     }return out;
 }
-void zgpui_font_shutdown(void){for(int i=0;i<face_count;i++){FT_Done_Face(faces[i]);free(paths[i]);}face_count=0;if(library){FT_Done_FreeType(library);library=NULL;}}
+void zgpui_font_shutdown(void){font_state_destroy(&fonts);}

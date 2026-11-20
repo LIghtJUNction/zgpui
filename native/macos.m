@@ -7,6 +7,28 @@
 #include <string.h>
 #include <math.h>
 struct ZgpuiWindow{NSWindow *window;NSOpenGLContext *context;int width,height;};
+static NSString *font_family=nil;
+static NSFont *font_for(NSString *family,int size,int bold){
+    if(!family||![family length])return bold?[NSFont boldSystemFontOfSize:size]:[NSFont systemFontOfSize:size];
+    if(![family isEqualToString:@"monospace"]){
+        NSFont *font=[[NSFontManager sharedFontManager]fontWithFamily:family traits:bold?NSBoldFontMask:0 weight:bold?9:5 size:size];
+        if(font)return font;
+    }
+    return [NSFont monospacedSystemFontOfSize:size weight:bold?NSFontWeightSemibold:NSFontWeightRegular];
+}
+int zgpui_set_font_family(ZgpuiWindow *w,const char *family,char *error,size_t capacity){
+    @autoreleasepool{
+        if(!w||!w->context||!family||strlen(family)>255){snprintf(error,capacity,"Invalid font family.");return 0;}
+        for(const unsigned char *p=(const unsigned char*)family;*p;p++)if(*p<32||*p==127){snprintf(error,capacity,"Invalid font family.");return 0;}
+        NSString *next=[[NSString alloc]initWithUTF8String:family];
+        if(!next||!font_for(next,16,0)||!font_for(next,16,1)){
+            [next release];snprintf(error,capacity,"Cannot prepare the requested font family.");return 0;
+        }
+        [w->context makeCurrentContext];
+        if([NSOpenGLContext currentContext]!=w->context){[next release];snprintf(error,capacity,"Cannot activate the font renderer.");return 0;}
+        zgpui_clear_text_cache();NSString *previous=font_family;font_family=next;[previous release];return 1;
+    }
+}
 ZgpuiWindow *zgpui_open(const char *title,int width,int height,char *error,size_t capacity){
     @autoreleasepool{
         [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
@@ -25,7 +47,7 @@ ZgpuiWindow *zgpui_open(const char *title,int width,int height,char *error,size_
         w->width=width;w->height=height;[w->window center];[w->window makeKeyAndOrderFront:nil];[NSApp finishLaunching];[NSApp activateIgnoringOtherApps:YES];return w;
     }
 }
-void zgpui_close(ZgpuiWindow *w){if(!w)return;@autoreleasepool{if(w->context){[w->context makeCurrentContext];zgpui_gpu_destroy();[NSOpenGLContext clearCurrentContext];[w->context clearDrawable];[w->context release];}if(w->window){[w->window close];[w->window release];}free(w);}}
+void zgpui_close(ZgpuiWindow *w){if(!w)return;@autoreleasepool{if(w->context){[w->context makeCurrentContext];zgpui_gpu_destroy();[NSOpenGLContext clearCurrentContext];[w->context clearDrawable];[w->context release];}if(w->window){[w->window close];[w->window release];}free(w);zgpui_font_shutdown();}}
 void zgpui_size(ZgpuiWindow *w,int *width,int *height){*width=w->width;*height=w->height;}
 void zgpui_swap(ZgpuiWindow *w){[w->context flushBuffer];}
 static int key(unsigned short code){switch(code){case 48:return 9;case 36:case 76:return 13;case 53:return 27;case 51:return 8;case 117:return 127;case 123:return 1001;case 124:return 1002;case 126:return 1003;case 125:return 1004;case 115:return 1005;case 119:return 1006;default:return 0;}}
@@ -58,7 +80,7 @@ void zgpui_clipboard(ZgpuiWindow *w,const char *text){(void)w;@autoreleasepool{N
 ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold){
     ZgpuiBitmap out={0};@autoreleasepool{
         NSString *string=[NSString stringWithUTF8String:text];if(!string)return out;
-        NSFont *font=bold?[NSFont boldSystemFontOfSize:size]:[NSFont systemFontOfSize:size];
+        NSFont *font=font_for(font_family,size,bold);if(!font)return out;
         NSDictionary *attrs=@{NSFontAttributeName:font,NSForegroundColorAttributeName:[NSColor whiteColor]};
         NSAttributedString *attributed=[[[NSAttributedString alloc]initWithString:string attributes:attrs]autorelease];
         CTLineRef line=CTLineCreateWithAttributedString((CFAttributedStringRef)attributed);CGFloat ascent=0,descent=0,leading=0;double width=CTLineGetTypographicBounds(line,&ascent,&descent,&leading);
@@ -71,4 +93,4 @@ ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold){
         free(rgba);CFRelease(line);return out;
     }
 }
-void zgpui_font_shutdown(void){}
+void zgpui_font_shutdown(void){[font_family release];font_family=nil;}

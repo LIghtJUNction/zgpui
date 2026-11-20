@@ -120,5 +120,6 @@ float zgpui_text(const char *text,float x,float y,int size,int bold,uint32_t val
 float zgpui_measure(const char *text,int size,int bold){if(!*text)return 0;Text *item=get_text(text,size,bold);return item?item->advance:0;}
 void zgpui_clip(int x,int y,int width,int height){glEnable(GL_SCISSOR_TEST);glScissor(x,screen_height-y-height,width>0?width:0,height>0?height:0);}
 void zgpui_unclip(void){glDisable(GL_SCISSOR_TEST);}
-void zgpui_gpu_destroy(void){for(int i=0;i<CACHE_COUNT;i++)drop(&cache[i]);for(int i=1;i<=64;i++){if(rounded_masks[i])glDeleteTextures(1,&rounded_masks[i]);rounded_masks[i]=0;}}
+void zgpui_clear_text_cache(void){for(int i=0;i<CACHE_COUNT;i++)drop(&cache[i]);clock_tick=0;}
+void zgpui_gpu_destroy(void){zgpui_clear_text_cache();for(int i=1;i<=64;i++){if(rounded_masks[i])glDeleteTextures(1,&rounded_masks[i]);rounded_masks[i]=0;}}
 const char *zgpui_gpu_info(void){const GLubyte *s=glGetString(GL_RENDERER);return s?(const char*)s:"unknown";}

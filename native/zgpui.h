@@ -11,8 +11,12 @@ int zgpui_event(ZgpuiWindow *window,ZgpuiEvent *event,int timeout_ms);
 void zgpui_swap(ZgpuiWindow *window);
 void zgpui_clipboard(ZgpuiWindow *window,const char *text);
 void zgpui_size(ZgpuiWindow *window,int *width,int *height);
+/* Copies the family; failure leaves the old font and text cache intact. */
+int zgpui_set_font_family(ZgpuiWindow *window,const char *family,char *error,size_t error_size);
 ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold);
 void zgpui_font_shutdown(void);
+/* Requires the owning renderer context; preserves geometry and framebuffer. */
+void zgpui_clear_text_cache(void);
 void zgpui_begin(int width,int height,uint32_t background);
 void zgpui_rect(float x,float y,float width,float height,float radius,uint32_t color);
 void zgpui_polygon(const float *points,size_t count,uint32_t color);

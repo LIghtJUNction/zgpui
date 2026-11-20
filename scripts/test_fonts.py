@@ -24,8 +24,9 @@ SOURCE = r"""
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static int config_loads, config_destroys;
+static int config_loads, config_destroys, fail_next_load;
 static FcConfig *tracked_load(void) {
+    if(fail_next_load){fail_next_load=0;return NULL;}
     ++config_loads;
     return FcInitLoadConfigAndFonts();
 }
@@ -87,10 +88,10 @@ static void matching(void) {
             assert(FcPatternGetString(expected,FC_FILE,0,&path)==FcResultMatch);
             assert(FcPatternGetInteger(expected,FC_INDEX,0,&index)==FcResultMatch);
             FT_Face face=face_for(samples[s],19,bold);
-            assert(face && face_count==1);
-            if(strcmp(paths[0],(char *)path) || face_indices[0]!=index) {
+            assert(face && fonts.count==1);
+            if(strcmp(fonts.paths[0],(char *)path) || fonts.indices[0]!=index) {
                 fprintf(stderr,"U+%04x weight=%d expected %s#%d, got %s#%d\n",
-                        samples[s],bold,path,index,paths[0],face_indices[0]);
+                        samples[s],bold,path,index,fonts.paths[0],fonts.indices[0]);
                 abort();
             }
             /* These fixtures require a font that actually contains the glyph. */
@@ -132,7 +133,7 @@ static void caching(void) {
 static void shared_weight(void) {
     FT_Face regular=face_for('A',18,0);
     FT_Face bold=face_for('A',18,1);
-    assert(regular && bold && regular==bold && face_count==1);
+    assert(regular && bold && regular==bold && fonts.count==1);
     int loaded=config_loads;
     assert(face_for('Z',18,1)==bold);
     assert(face_for('Z',24,0)==regular);
@@ -157,10 +158,45 @@ static void lifecycle(void) {
         ZgpuiBitmap b=zgpui_rasterize("World 世界 Backup 备份",16+i%4,i%2);
         assert(bitmap_hash(b));free(b.pixels);
         zgpui_font_shutdown();
-        assert(face_count==0 && !library);
+        assert(fonts.count==0 && !fonts.library);
         zgpui_font_shutdown();
     }
     assert(config_loads==config_destroys);
+}
+static void family_transaction(void) {
+#ifdef ZGPUI_SOFTWARE
+    /* No display operations are needed to exercise the prepare/commit boundary. */
+    ZgpuiWindow window={0};window.display=(Display *)(uintptr_t)1;
+    FcConfig *host=FcInitLoadConfigAndFonts();assert(host && FcConfigSetCurrent(host));
+    zgpui_begin(128,64,0x112233ff);int width=0,height=0;
+    uint32_t *frame=zgpui_software_pixels(&width,&height);
+    assert(frame && width==128 && height==64 && frame[0]==0x112233);
+    float narrow=zgpui_measure("iiiiiiii",20,0),wide=zgpui_measure("WWWWWWWW",20,0);
+    assert(narrow>0 && wide>0);
+    FT_Library old_library=fonts.library;FT_Face old_face=fonts.faces[0];
+    char error[256]={0};fail_next_load=1;
+    assert(!zgpui_set_font_family(&window,"monospace",error,sizeof(error)) && error[0]);
+    assert(fonts.library==old_library && fonts.faces[0]==old_face && !fonts.family[0]);
+    assert(zgpui_software_pixels(&width,&height)==frame && frame[0]==0x112233);
+    assert(zgpui_measure("iiiiiiii",20,0)==narrow && zgpui_measure("WWWWWWWW",20,0)==wide);
+    for(int i=0;i<12;i++){
+        assert(zgpui_set_font_family(&window,"monospace",error,sizeof(error)));
+        assert(zgpui_software_pixels(&width,&height)==frame && frame[0]==0x112233);
+        assert(zgpui_measure("iiiiiiii",20,0)==zgpui_measure("WWWWWWWW",20,0));
+        ZgpuiBitmap cjk=zgpui_rasterize("中文 世界 备份",20,i%2);
+        assert(bitmap_hash(cjk));free(cjk.pixels);
+        assert(fonts.count<=12 && FcConfigGetCurrent()==host);
+        assert(zgpui_set_font_family(&window,"",error,sizeof(error)));
+        assert(zgpui_measure("iiiiiiii",20,0)==narrow && zgpui_measure("WWWWWWWW",20,0)==wide);
+    }
+    assert(zgpui_set_font_family(&window,"zgpui-uninstalled-font-97493",error,sizeof(error)));
+    assert(zgpui_measure("iiiiiiii",20,0)==zgpui_measure("WWWWWWWW",20,0));
+    zgpui_gpu_destroy();zgpui_font_shutdown();
+    assert(!fonts.count && !fonts.library && !fonts.family[0]);
+    assert(config_loads==config_destroys);FcConfigDestroy(host);
+#else
+    abort(); /* The unit fixture is explicitly the software renderer. */
+#endif
 }
 static void window_probe(void) {
     char error[256]={0};
@@ -191,6 +227,7 @@ int main(int argc,char **argv) {
     else if(!strcmp(argv[1],"shared-weight"))shared_weight();
     else if(!strcmp(argv[1],"host-config"))host_config();
     else if(!strcmp(argv[1],"lifecycle"))lifecycle();
+    else if(!strcmp(argv[1],"family-transaction"))family_transaction();
     else if(!strcmp(argv[1],"window"))window_probe();
     else return 2;
     zgpui_font_shutdown();
@@ -345,6 +382,9 @@ class LinuxFontTests(unittest.TestCase):
 
     def test_repeated_open_rasterize_shutdown_is_clean(self):
         self.run_case("lifecycle",{"FC_LANG":"zh-cn"})
+
+    def test_font_switch_failure_preserves_cache_and_host_config(self):
+        self.run_case("family-transaction",{"FC_LANG":"zh-cn"})
 
 if __name__=="__main__":
     if "--window" in sys.argv:

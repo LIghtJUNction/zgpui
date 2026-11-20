@@ -129,6 +129,12 @@ def main():
         else:
             run(str(binary), "zgpui-release-probe", "660", "264", capture=True)
             window_scope = "bounded native window, context and present smoke"
+        style = binary.with_name("style_probe.exe" if os.name == "nt" else "style_probe")
+        style_command = [str(style), str(output / (args.features + "-style"))]
+        if sys.platform == "linux":
+            style_command = ["xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp", *style_command]
+        run(*style_command, extra_env={"LIBGL_ALWAYS_SOFTWARE": "1"})
+        window_scope += "; real palette/input pixels, font switch/reset and sequential-window isolation"
     report = {
         "utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "platform": platform.system(),

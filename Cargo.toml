@@ -26,6 +26,10 @@ required-features = ["native"]
 name = "window_probe"
 required-features = ["native"]
 
+[[example]]
+name = "style_probe"
+required-features = ["native"]
+
 [[bench]]
 name = "protocol"
 harness = false

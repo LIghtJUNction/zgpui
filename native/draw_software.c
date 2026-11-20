@@ -223,8 +223,12 @@ void zgpui_unclip(void) {
     clip_left = clip_top = 0;
     clip_right = screen_width; clip_bottom = screen_height;
 }
-void zgpui_gpu_destroy(void) {
+void zgpui_clear_text_cache(void) {
     for (int i = 0; i < CACHE_COUNT; ++i) drop(&cache[i]);
+    clock_tick = 0;
+}
+void zgpui_gpu_destroy(void) {
+    zgpui_clear_text_cache();
     if (pixels) munmap(pixels, pixel_bytes);
     pixels = NULL; pixel_bytes = 0; frame_ready = 0;
     screen_width = screen_height = 0;
