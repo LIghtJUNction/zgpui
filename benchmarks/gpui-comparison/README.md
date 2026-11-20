@@ -5,17 +5,25 @@ It verifies every output rectangle against an independent integer geometry oracl
 before recording any sample. It does **not** establish that the two libraries
 provide equivalent desktop frameworks.
 
-**Checkpoint status:** cloud CPU release builds passed with the fixed libraries
-and profile; geometry gates exposed two fixture input mismatches. An auto-width
-GPUI root first produced a zero-width leaf; after declaring 100% root width, the
-test window's default 2x scale produced 64 pixels instead of the independently
-expected 32. Both failed binaries and source-bound receipts are retained in
+**Checkpoint status:** source `499b78324879cea97f8dfe9ea9f44111b938770d`
+passed the cloud CPU release build and the unchanged independent geometry gate:
+20 configurations and 40,960 deterministic pointer-query iterations. The
+[source-bound receipt](resource-gates/20261120T032341Z/build-and-geometry.json)
+records the executable, source, lockfile and resource-monitor hashes. The earlier
+native build remains paused. The allocation executable has not yet been built;
+no performance sample has been collected, and there are no measured winner,
+frame-time or allocation claims.
+
+The gate first exposed two fixture input mismatches. An auto-width GPUI root
+produced a zero-width leaf; after declaring 100% root width, the test window's
+default 2x scale produced 64 pixels instead of the independently expected 32.
+Both failed binaries and source-bound receipts are retained in
 `resource-gates/20261120T030008Z/build-and-geometry.json` and
-`resource-gates/20261120T031258Z/build-and-geometry.json`. The fixture now declares
-100% root width and initializes the test window at 1x scale before requesting
-layout. This correction awaits the unchanged geometry gate. The earlier native
-build remains paused. No performance sample has been collected, and there are
-no measured winner, frame-time or allocation claims.
+`resource-gates/20261120T031258Z/build-and-geometry.json`. Declaring 100% root width
+and initializing the test window at 1x scale corrected these inputs. The library
+algorithms, dependency lock, optimization profile and independent oracle were
+unchanged. Build wall time and the polling guard's stage wall time are not
+operation latency measurements.
 
 ## Fixed sources and build
 

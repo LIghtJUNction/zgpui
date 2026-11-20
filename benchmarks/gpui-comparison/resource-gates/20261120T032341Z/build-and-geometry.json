@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "build_profile": {
+    "rustc": "1.100.0",
+    "opt_level": 3,
+    "lto": "thin",
+    "codegen_units": 1
+  },
+  "fixed_lock_sha256": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+  "fixed_visibility_patch_sha256": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07",
+  "status": "build_and_geometry_passed",
+  "source": "499b78324879cea97f8dfe9ea9f44111b938770d",
+  "at_utc": "2026-11-20T03:23:41.757088+00:00",
+  "scope": "Fixed CPU harness build and independent geometry correctness gate; no performance samples.",
+  "binary": {
+    "bytes": 7012672,
+    "sha256": "2c17d7c272833c7db68acb5ccf7cd687b55ca247b2fe81d95cca0ff4fc52cf95"
+  },
+  "source_and_lock_checks_after_each_stage": "passed",
+  "control_cell": "g4:67",
+  "controller_status": "stopped",
+  "kernel_cgroup_claimed": false,
+  "transport_observation": "The controller finished and wrote atomic stopped/passed receipts before the conversation resumed; no second process was started when the old exec cell was unavailable.",
+  "resource_monitor": {
+    "kind": "Userspace polling of own process-group RSS and host MemAvailable",
+    "poll_seconds": 1,
+    "rss_stop_bytes": 4294967296,
+    "host_floor_bytes": 3221225472,
+    "admission_bytes": 7784628224,
+    "max_seconds": 3000,
+    "stages": [
+      {
+        "stage": "build",
+        "status": "passed",
+        "exit_code": 0,
+        "wall_seconds": 149.07794067000214,
+        "peak_process_group_rss_bytes": 1805844480,
+        "minimum_host_mem_available_bytes": 7903096832,
+        "stdout_sha256": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3",
+        "stderr_sha256": "6511893aeb1213b48c2e70e1b680d36aa265badeb23fc570800d13957dcbca4e"
+      },
+      {
+        "stage": "geometry",
+        "status": "passed",
+        "exit_code": 0,
+        "wall_seconds": 1.1537076009990415,
+        "peak_process_group_rss_bytes": 5070848,
+        "minimum_host_mem_available_bytes": 9306435584,
+        "stdout_sha256": "f52417fcfc54ccf79e42b09035d17b6531dee0aa7e16ff18c06a4f94de797c29",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "geometry": {
+    "verified": true,
+    "configurations": 20,
+    "grids_leaves": [
+      1,
+      16,
+      64,
+      225
+    ],
+    "variants_per_grid": [
+      0,
+      1,
+      0,
+      2,
+      1
+    ],
+    "pointer_queries_per_configuration": 2048,
+    "pointer_query_iterations": 40960,
+    "oracle": "Independent integer leaf rectangles and half-open pointer-hit expectations; both implementations checked separately.",
+    "scale_factor": 1,
+    "root_width": "100 percent of the supplied viewport",
+    "actual_gpu_frames": 0
+  },
+  "measurement_counts": {
+    "timing_samples": 0,
+    "allocation_samples": 0,
+    "gpu_frames": 0
+  },
+  "allocation_probe_built": false,
+  "receipt_hashes": [
+    {
+      "label": "plan.json",
+      "sha256": "39716893f802123e699d31d07b1517b3b4edf93310b8c10550c531063dea9cff"
+    },
+    {
+      "label": "supervisor.py",
+      "sha256": "936a1f07a0269bcb9080189ef3e36ecfc652ad2ae5bfbeeb8c045f65b12ad17f"
+    },
+    {
+      "label": "admission.json",
+      "sha256": "83d9ce09b4750dcd3ece07d5fe3b64bdf09a7f74d38409abe28e9cc1fb979c59"
+    },
+    {
+      "label": "build.json",
+      "sha256": "fc729ffadf187dc5fa9eb5b32651eb1441d2a946a05e83f486f8601e3bcccd99"
+    },
+    {
+      "label": "geometry.json",
+      "sha256": "5e9a81cc65b5e0e4169e35fa65a02b445bf1457b5efe4075c78e5aa8b8958f32"
+    },
+    {
+      "label": "result.json",
+      "sha256": "9395625bbe4c08ceb1cd255b406d91cf93675ecfb44cdf38e17da24ec81d0319"
+    },
+    {
+      "label": "controller.json",
+      "sha256": "3d6999e6a8ed0d830f23dd634d1b9facfe79a87e36e310957d31b0f7cf604261"
+    },
+    {
+      "label": "geometry.stdout",
+      "sha256": "f52417fcfc54ccf79e42b09035d17b6531dee0aa7e16ff18c06a4f94de797c29"
+    },
+    {
+      "label": "geometry.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "resources.ndjson",
+      "sha256": "101c2d9e6db610a2f0ff8932fe48fa10eb73f725e7c7f21f9d76d5c94df9ce31"
+    }
+  ],
+  "upstream_evidence": [
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/platform/test/window.rs",
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/window.rs",
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/taffy.rs"
+  ],
+  "fixture_source_hashes": {
+    "Cargo.toml": "51118132e380bfbd5bfff9794f29a79369ffcceae642df6fe6f3bcee30470a55",
+    "Cargo.lock": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+    "build.py": "62ce606886f63192ef9be0c20fb0d97260d4a970d367f53645a4a9b5e7acd6c9",
+    "prepare.py": "48df82027c6d0bd209b2292cc18f5eea2f8af3165d3e20365b2e9728313dcda6",
+    "run.py": "9b68bb624a96d6e5071c3cd8933294caab206be2bd7fb0d67417a07480fba9ba",
+    "src/main.rs": "97aee49c89a5d79c09e2358986fafc9b8dc54fd94ae9a765b14d6a2429ec96ed",
+    "src/allocations.rs": "e2db642aa61459a081d41a75bb6ff601a823d30c4e7469929d12626c44198312",
+    "sources.json": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3",
+    "gpui-layout-visibility.patch": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07"
+  }
+}
