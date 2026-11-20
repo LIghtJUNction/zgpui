@@ -10,9 +10,11 @@ passed the cloud CPU release build and the unchanged independent geometry gate:
 20 configurations and 40,960 deterministic pointer-query iterations. The
 [source-bound receipt](resource-gates/20261120T032341Z/build-and-geometry.json)
 records the executable, source, lockfile and resource-monitor hashes. The earlier
-native build remains paused. The allocation executable has not yet been built;
-no performance sample has been collected, and there are no measured winner,
-frame-time or allocation claims.
+native build remains paused. A separate allocation executable also passed the
+same geometry gate, while the timing executable remained byte-identical; its
+[build receipt](resource-gates/20261120T033220Z/allocation-build-and-geometry.json)
+records both hashes. No performance or allocation sample has been collected,
+and there are no measured winner or frame-time claims.
 
 The gate first exposed two fixture input mismatches. An auto-width GPUI root
 produced a zero-width leaf; after declaring 100% root width, the test window's

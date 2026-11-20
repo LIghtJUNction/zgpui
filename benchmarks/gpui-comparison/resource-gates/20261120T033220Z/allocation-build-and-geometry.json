@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "build_profile": {
+    "rustc": "1.100.0",
+    "opt_level": 3,
+    "lto": "thin",
+    "codegen_units": 1
+  },
+  "fixed_lock_sha256": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+  "fixed_visibility_patch_sha256": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07",
+  "geometry": {
+    "verified": true,
+    "configurations": 20,
+    "grids_leaves": [
+      1,
+      16,
+      64,
+      225
+    ],
+    "variants_per_grid": [
+      0,
+      1,
+      0,
+      2,
+      1
+    ],
+    "pointer_queries_per_configuration": 2048,
+    "pointer_query_iterations": 40960,
+    "oracle": "Independent integer leaf rectangles and half-open pointer-hit expectations; both implementations checked separately.",
+    "scale_factor": 1,
+    "root_width": "100 percent of the supplied viewport",
+    "actual_gpu_frames": 0
+  },
+  "upstream_evidence": [
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/platform/test/window.rs",
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/window.rs",
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/taffy.rs"
+  ],
+  "fixture_source_hashes": {
+    "Cargo.toml": "51118132e380bfbd5bfff9794f29a79369ffcceae642df6fe6f3bcee30470a55",
+    "Cargo.lock": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+    "build.py": "62ce606886f63192ef9be0c20fb0d97260d4a970d367f53645a4a9b5e7acd6c9",
+    "prepare.py": "48df82027c6d0bd209b2292cc18f5eea2f8af3165d3e20365b2e9728313dcda6",
+    "run.py": "9b68bb624a96d6e5071c3cd8933294caab206be2bd7fb0d67417a07480fba9ba",
+    "src/main.rs": "97aee49c89a5d79c09e2358986fafc9b8dc54fd94ae9a765b14d6a2429ec96ed",
+    "src/allocations.rs": "e2db642aa61459a081d41a75bb6ff601a823d30c4e7469929d12626c44198312",
+    "sources.json": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3",
+    "gpui-layout-visibility.patch": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07"
+  },
+  "status": "separate_allocation_build_and_geometry_passed",
+  "source": "c34754e0ff6b9b34314fb5266bd201c578b317f0",
+  "functional_source": "499b78324879cea97f8dfe9ea9f44111b938770d",
+  "at_utc": "2026-11-20T03:32:20.420881+00:00",
+  "scope": "Independent allocation-instrumented executable build and geometry correctness gate; no performance or allocation samples.",
+  "binaries": {
+    "timing_binary": {
+      "bytes": 7012672,
+      "sha256": "2c17d7c272833c7db68acb5ccf7cd687b55ca247b2fe81d95cca0ff4fc52cf95"
+    },
+    "allocation_binary": {
+      "bytes": 8056672,
+      "sha256": "a54e314542e08050d4344666f3a02c3ae1a0ab5f9b762f2a24a323bdf9650f83"
+    }
+  },
+  "timing_binary_identical_to_previous_pass": true,
+  "source_and_lock_checks_after_each_stage": "passed",
+  "control_cell": "g4:83",
+  "controller_status": "stopped",
+  "kernel_cgroup_claimed": false,
+  "resource_monitor": {
+    "kind": "Userspace polling of own process-group RSS and host MemAvailable",
+    "poll_seconds": 1,
+    "rss_stop_bytes": 4294967296,
+    "host_floor_bytes": 3221225472,
+    "admission_bytes": 7784628224,
+    "max_seconds": 3000,
+    "stages": [
+      {
+        "stage": "build",
+        "status": "passed",
+        "exit_code": 0,
+        "wall_seconds": 238.07948106700496,
+        "peak_process_group_rss_bytes": 1785815040,
+        "minimum_host_mem_available_bytes": 7913959424,
+        "stdout_sha256": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3",
+        "stderr_sha256": "8b82229e939a64f33ab6e37c3244d3402782b6290d39b8dc7a07b20c36f1af31"
+      },
+      {
+        "stage": "geometry",
+        "status": "passed",
+        "exit_code": 0,
+        "wall_seconds": 1.0054510330082849,
+        "peak_process_group_rss_bytes": 1687552,
+        "minimum_host_mem_available_bytes": 9328046080,
+        "stdout_sha256": "f52417fcfc54ccf79e42b09035d17b6531dee0aa7e16ff18c06a4f94de797c29",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "measurement_counts": {
+    "timing_samples": 0,
+    "allocation_samples": 0,
+    "gpu_frames": 0
+  },
+  "allocation_probe_built": true,
+  "receipt_hashes": [
+    {
+      "label": "plan.json",
+      "sha256": "b42c6448b01e4bf6675f4518c047f9f3223fcd36687a7223fbad51dbf87b4ce7"
+    },
+    {
+      "label": "supervisor.py",
+      "sha256": "d86bf6d881d3243dd2c37743625670a17d88211a2996027faaf083fdacf4217b"
+    },
+    {
+      "label": "admission.json",
+      "sha256": "02334d567038afa79b1561262606c40993d3aee1ad7ca65925f76482e3b7c428"
+    },
+    {
+      "label": "build.json",
+      "sha256": "98815b17792fe7ffe60f5609552b3c0c14efdbd2cb302386bcec7640e48b39e7"
+    },
+    {
+      "label": "geometry.json",
+      "sha256": "a9fa78aa1b109f9edc05c4185fdcd7ba582a15b308fce8129b8364bf283e1c8a"
+    },
+    {
+      "label": "result.json",
+      "sha256": "640436f30a52e672111a54bc6f6a79d42e2e3caf616b659903de84b8c722e9d8"
+    },
+    {
+      "label": "controller.json",
+      "sha256": "a537534fb96223a8da19b0678f31cb7f828202a5b7816cba272737ada3733579"
+    },
+    {
+      "label": "geometry.stdout",
+      "sha256": "f52417fcfc54ccf79e42b09035d17b6531dee0aa7e16ff18c06a4f94de797c29"
+    },
+    {
+      "label": "geometry.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "resources.ndjson",
+      "sha256": "d0b06ad0aed466584e2ee019cba067dbafc674e20ee87bce36f4b225de3a32ab"
+    }
+  ]
+}
