@@ -5,10 +5,14 @@ It verifies every output rectangle against an independent integer geometry oracl
 before recording any sample. It does **not** establish that the two libraries
 provide equivalent desktop frameworks.
 
-**Checkpoint status:** the measurement harness is prepared. Its first native
-GPUI build was paused to relieve memory pressure on the shared development
-machine. Geometry verification and performance sampling have not run yet.
-There are no measured winner, frame-time or allocation claims in this checkpoint.
+**Checkpoint status:** the first cloud CPU release build passed with the fixed
+sources and profile. Its geometry gate rejected the fixture's auto-width GPUI
+root: one leaf measured zero pixels wide instead of the independently expected
+32 pixels. The failed binary and source-bound receipt are retained in
+`resource-gates/20261120T030008Z/build-and-geometry.json`. The fixture now declares
+100% root width; this correction awaits the same geometry gate. The earlier
+native build remains paused. No performance sample has been collected, and
+there are no measured winner, frame-time or allocation claims.
 
 ## Fixed sources and build
 
@@ -48,6 +52,15 @@ boxes (3, 21, 73 or 241 total nodes). Every leaf is 24 pixels high. Gaps are
 4 pixels. Widths are chosen so equal flex shares land on integer coordinates.
 The viewport contains all leaves: clipping, scrolling and text measurement are
 separate capabilities and are not silently omitted from a claimed full-frame task.
+
+Both roots occupy the supplied viewport width. The zgpui adapter receives an
+explicit root rectangle; the GPUI adapter uses 100% root width. Definite
+available space alone does not force an auto-sized standalone flex root to fill
+that width. GPUI's production
+[window-root setup](https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/window.rs)
+handles this separately through `stretch_auto_size_to_fill`. Using a percentage
+in this retained fixture also lets each resize resolve against the new viewport;
+the independent expected rectangles and normal layout cache remain unchanged.
 
 | Workload | Measured work | Boundary |
 |---|---|---|

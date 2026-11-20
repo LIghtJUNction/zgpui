@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "status": "build_passed_geometry_failed",
+  "source": "68dea3dc9b1fec379a5b9c87d94a14c6652711e2",
+  "at_utc": "2026-11-20T03:07:24.749929+00:00",
+  "scope": "Fixed CPU harness build and correctness gate; no performance samples.",
+  "build_profile": {
+    "rustc": "1.100.0",
+    "opt_level": 3,
+    "lto": "thin",
+    "codegen_units": 1
+  },
+  "fixed_lock_sha256": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+  "fixed_visibility_patch_sha256": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07",
+  "binary": {
+    "bytes": 7010080,
+    "sha256": "fd5e82c102ba951fd3f8f1a8fe6c828f7e9b575e7fceaef7cf23da41c9303a04"
+  },
+  "source_and_lock_checks_after_each_stage": "passed",
+  "control_cell": "g4:44",
+  "transport_error": null,
+  "kernel_cgroup_claimed": false,
+  "resource_monitor": {
+    "kind": "Userspace polling of own process-group RSS and host MemAvailable",
+    "poll_seconds": 1,
+    "rss_stop_bytes": 4294967296,
+    "host_floor_bytes": 3221225472,
+    "admission_bytes": 7784628224,
+    "max_seconds": 3000,
+    "stages": [
+      {
+        "stage": "fetch",
+        "status": "passed",
+        "exit_code": 0,
+        "wall_seconds": 18.14220125800057,
+        "peak_process_group_rss_bytes": 142409728,
+        "minimum_host_mem_available_bytes": 9263972352,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e9f0e3db435ad0326673cfffa78aba3088ae38a9ad443b5bc1df7546f68e66bc"
+      },
+      {
+        "stage": "build",
+        "status": "passed",
+        "exit_code": 0,
+        "wall_seconds": 416.64107135200175,
+        "peak_process_group_rss_bytes": 1799553024,
+        "minimum_host_mem_available_bytes": 7958736896,
+        "stdout_sha256": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3",
+        "stderr_sha256": "f6a9d17b17374c40438135f3719dd212d22a678a9e1383247414ae82486ae058"
+      },
+      {
+        "stage": "geometry",
+        "status": "command_failed",
+        "exit_code": 101,
+        "wall_seconds": 1.007952687999932,
+        "peak_process_group_rss_bytes": 2236416,
+        "minimum_host_mem_available_bytes": 9383858176,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "a25a8d18d1fbb0afd95fb1af2762c02f0904007af87d4cbfec79b04cd1c3a9a1"
+      }
+    ]
+  },
+  "geometry_failure": {
+    "first_case_leaves": 1,
+    "expected_rectangles": [
+      [
+        0,
+        0,
+        32,
+        24
+      ]
+    ],
+    "gpui_rectangles": [
+      [
+        0,
+        0,
+        0,
+        24
+      ]
+    ],
+    "zgpui_matched_oracle_before_gpui_assertion": true,
+    "exit_code": 101,
+    "classification": "Fixture viewport constraint mismatch; not a GPUI library correctness or performance claim.",
+    "source_reason": "The harness passes definite available space but leaves its flex root width Auto. Upstream uses stretch_auto_size_to_fill for actual window roots; available-space constraints alone do not make this standalone flex root fill the viewport.",
+    "proposed_correction": "Express the root width as 100 percent of available viewport via gpui::relative(1.). Keep the independent oracle and all library/build inputs unchanged.",
+    "correction_validated": false
+  },
+  "measurement_counts": {
+    "timing_samples": 0,
+    "allocation_samples": 0,
+    "gpu_frames": 0
+  },
+  "receipt_hashes": [
+    {
+      "label": "plan.json",
+      "sha256": "b006004e2693f7c59e6fb3ff44bba2c11a043ddce8dcee643255db60ce6d5b70"
+    },
+    {
+      "label": "supervisor.py",
+      "sha256": "b15b32145604c61ca156923ca4f4e9a630d58e036041d2b1fba903842135b746"
+    },
+    {
+      "label": "guard-self-check.json",
+      "sha256": "4808a2e977bd5969955934c75a9c5ba7eee776401f8984843096c6b3dff001fb"
+    },
+    {
+      "label": "admission.json",
+      "sha256": "fc8f2cdde1766c85f8e2c78955db652822aa09694127dad77f817168fd6e25ef"
+    },
+    {
+      "label": "fetch.json",
+      "sha256": "cb01f1dd31953cef84f8c8c25a29b06a0e6d3cf234eaaea99f41a38553d1520c"
+    },
+    {
+      "label": "build.json",
+      "sha256": "3d4794269093e0d77195bbed101996ac8f21a8251c62cb2a1f64ca7fa459f1d5"
+    },
+    {
+      "label": "geometry.json",
+      "sha256": "16cb11ed53c7c4f337dcf70f64519dfa144901928e03ee362ee56c76eb8a97d0"
+    },
+    {
+      "label": "result.json",
+      "sha256": "ce45e7ece2142846c580f44b2b92937bf986c36329d89906fdd81d4d4f01a9a1"
+    },
+    {
+      "label": "controller.json",
+      "sha256": "6ea213e645c64710e1503d15cf4c5bbb4a4d29f04381134434c3d2c0ec22d3f0"
+    }
+  ],
+  "upstream_evidence": [
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/taffy.rs",
+    "https://github.com/zed-industries/zed/blob/a246423a3b24a08e0d0c8574eab3a9de422747e0/crates/gpui/src/window.rs"
+  ],
+  "fixture_source_hashes": {
+    "Cargo.toml": "51118132e380bfbd5bfff9794f29a79369ffcceae642df6fe6f3bcee30470a55",
+    "Cargo.lock": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+    "build.py": "62ce606886f63192ef9be0c20fb0d97260d4a970d367f53645a4a9b5e7acd6c9",
+    "prepare.py": "48df82027c6d0bd209b2292cc18f5eea2f8af3165d3e20365b2e9728313dcda6",
+    "run.py": "9b68bb624a96d6e5071c3cd8933294caab206be2bd7fb0d67417a07480fba9ba",
+    "src/main.rs": "36cb446b2e797ddfdeb0cb198e1dafe645edec02dd93ce31029e184a986eba18",
+    "src/allocations.rs": "e2db642aa61459a081d41a75bb6ff601a823d30c4e7469929d12626c44198312",
+    "sources.json": "52b8e9f9bf4815db83a099636960c92bc1d3e0596e8eaa82014321f2ef080fd3",
+    "gpui-layout-visibility.patch": "961282d90ee7404d1f7a1d9c3d389cb070fbac82e820ad8e4ff72ae7acbe8e07"
+  }
+}

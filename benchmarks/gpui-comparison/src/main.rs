@@ -1,6 +1,6 @@
 use gpui::{
     App, AvailableSpace, Bounds, Display, FlexDirection, LayoutId, Length, Pixels, Style,
-    TaffyLayoutEngine, TestAppContext, Window, point, px, size,
+    TaffyLayoutEngine, TestAppContext, Window, point, px, relative, size,
 };
 use serde::Serialize;
 use std::{hint::black_box, time::Instant};
@@ -153,7 +153,7 @@ impl GFixture {
         }
         let style = Style {
             display: Display::Flex,
-            size: size(Length::Auto, px(case.height() as f32).into()),
+            size: size(relative(1.).into(), px(case.height() as f32).into()),
             flex_direction: FlexDirection::Column,
             gap: size(px(0.).into(), px(GAP as f32).into()),
             ..Default::default()
