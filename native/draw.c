@@ -242,7 +242,14 @@ float zgpui_text(const char *text,float x,float y,int size,int bold,uint32_t val
     }
     glDisable(GL_TEXTURE_2D);return item->advance;
 }
-float zgpui_measure(const char *text,int size,int bold){if(!*text)return 0;Text *item=get_text(text,size,bold);return item?item->advance:0;}
+float zgpui_measure(const char *text,int size,int bold){
+    if(!text||!*text)return 0;
+    for(int i=0;i<CACHE_COUNT;i++)
+        if(cache[i].text&&cache[i].size==size&&cache[i].bold==bold&&!strcmp(cache[i].text,text)){
+            cache[i].stamp=++clock_tick;return cache[i].advance;
+        }
+    return zgpui_text_advance(text,size,bold);
+}
 void zgpui_clip(int x,int y,int width,int height){glEnable(GL_SCISSOR_TEST);glScissor(x,screen_height-y-height,width>0?width:0,height>0?height:0);}
 void zgpui_unclip(void){glDisable(GL_SCISSOR_TEST);}
 void zgpui_clear_text_cache(void){for(int i=0;i<CACHE_COUNT;i++)drop(&cache[i]);clock_tick=0;}

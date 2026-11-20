@@ -284,13 +284,28 @@ static uint32_t codepoint(const unsigned char **p){
     uint32_t c=*(*p)++;if(c<0x80)return c;unsigned int count=c<0xe0?1:c<0xf0?2:3;c&=(1u<<(6-count))-1;
     while(count--&&**p){c=(c<<6)|(*(*p)++&63);}return c;
 }
+float zgpui_text_advance(const char *text,int size,int bold){
+    if(!text||!*text||size<1||size>96)return 0;
+    FT_Face regular=face_for('A',size,bold);if(!regular)return 0;
+    double width=0;const unsigned char *p=(const unsigned char*)text;
+    while(*p){
+        uint32_t cp=codepoint(&p);
+        FT_Face f=FT_Get_Char_Index(regular,cp)?regular:face_for(cp,size,bold);
+        /* Default loading provides the same hinted advance without rendering. */
+        if(f&&!FT_Load_Char(f,cp,FT_LOAD_DEFAULT))width+=(double)(f->glyph->advance.x>>6);
+    }
+    return (float)width;
+}
 ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold){
     ZgpuiBitmap out={0};if(size<1||size>96)return out;FT_Face regular=face_for('A',size,bold);if(!regular)return out;
     int ascent=(int)(regular->size->metrics.ascender>>6),descent=(int)(-regular->size->metrics.descender>>6);
-    int width=2,height=ascent+descent+2;const unsigned char *p=(const unsigned char*)text;
-    while(*p){uint32_t cp=codepoint(&p);FT_Face f=FT_Get_Char_Index(regular,cp)?regular:face_for(cp,size,bold);if(f&&!FT_Load_Char(f,cp,FT_LOAD_RENDER))width+=(int)(f->glyph->advance.x>>6);}
-    if(width<1||width>8192||height>256)return out;out.pixels=calloc((size_t)width,height);if(!out.pixels)return out;out.width=width;out.height=height;out.advance=(float)(width-2);
-    int x=1;p=(const unsigned char*)text;
+    float advance=zgpui_text_advance(text,size,bold);
+    if(advance<0||advance>8190)return out;
+    int width=(int)advance+2,height=ascent+descent+2;
+    if(width<1||height<1||height>256)return out;
+    out.pixels=calloc((size_t)width,height);if(!out.pixels)return out;
+    out.width=width;out.height=height;out.advance=advance;
+    int x=1;const unsigned char *p=(const unsigned char*)text;
     while(*p){uint32_t cp=codepoint(&p);FT_Face f=FT_Get_Char_Index(regular,cp)?regular:face_for(cp,size,bold);if(!f||FT_Load_Char(f,cp,FT_LOAD_RENDER))continue;FT_GlyphSlot g=f->glyph;
         for(unsigned int row=0;row<g->bitmap.rows;row++)for(unsigned int col=0;col<g->bitmap.width;col++){int dx=x+g->bitmap_left+(int)col,dy=ascent-g->bitmap_top+(int)row+1;if(dx>=0&&dx<width&&dy>=0&&dy<height)out.pixels[(size_t)dy*width+dx]=g->bitmap.buffer[row*(unsigned int)g->bitmap.pitch+col];}
         x+=(int)(g->advance.x>>6);

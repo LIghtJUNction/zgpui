@@ -85,19 +85,60 @@ void zgpui_begin(int width, int height, uint32_t background) {
     for (size_t i = 0; i < count; ++i) pixels[i] = background >> 8;
     frame_ready = 1;
 }
+/* The fully covered part of a scanline needs no distance-field work. */
+static void fill_span(int row, int first, int last, uint32_t color) {
+    uint32_t *dst = pixels + (size_t)row * (size_t)screen_width + (size_t)first;
+    unsigned int alpha = color & 255u;
+    if (alpha == 255u) {
+        uint32_t value = color >> 8;
+        for (int col = first; col < last; ++col) *dst++ = value;
+        return;
+    }
+    unsigned int inverse = 255u - alpha;
+    unsigned int red = (color >> 24) * alpha + 127u;
+    unsigned int green = ((color >> 16) & 255u) * alpha + 127u;
+    unsigned int blue = ((color >> 8) & 255u) * alpha + 127u;
+    for (int col = first; col < last; ++col, ++dst) {
+        unsigned int r = (red + ((*dst >> 16) & 255u) * inverse) / 255u;
+        unsigned int g = (green + ((*dst >> 8) & 255u) * inverse) / 255u;
+        unsigned int b = (blue + (*dst & 255u) * inverse) / 255u;
+        *dst = (r << 16) | (g << 8) | b;
+    }
+}
+static unsigned int rect_coverage(float qx, float qy, float radius) {
+    float ox = fmaxf(qx, 0), oy = fmaxf(qy, 0);
+    float distance = sqrtf(ox * ox + oy * oy) + fminf(fmaxf(qx, qy), 0) - radius;
+    return (unsigned int)(clamp(0.5f - distance, 0, 1) * 255.0f + 0.5f);
+}
 void zgpui_rect(float x, float y, float width, float height, float radius, uint32_t color) {
     int b[4];
     if (!(color & 255u) || !isfinite(radius) || !bounds(x, y, x + width, y + height, b)) return;
     radius = clamp(radius, 0, fminf(width, height) * 0.5f);
     float cx = x + width * 0.5f, cy = y + height * 0.5f;
     float hx = width * 0.5f - radius, hy = height * 0.5f - radius;
+    float full = radius - 0.5f;
     for (int row = b[1]; row < b[3]; ++row) {
-        for (int col = b[0]; col < b[2]; ++col) {
-            float qx = fabsf(col + 0.5f - cx) - hx, qy = fabsf(row + 0.5f - cy) - hy;
-            float ox = fmaxf(qx, 0), oy = fmaxf(qy, 0);
-            float distance = sqrtf(ox * ox + oy * oy) + fminf(fmaxf(qx, qy), 0) - radius;
-            blend(col, row, color, (unsigned int)(clamp(0.5f - distance, 0, 1) * 255.0f + 0.5f));
+        float qy = fabsf(row + 0.5f - cy) - hy;
+        int first = b[0], last = b[0];
+        if (qy <= full) {
+            /* In the middle rows the span reaches the straight edges; in the
+               corner rows the central rectangle stays entirely inside the arc. */
+            float half = hx + (qy <= 0 ? full : fminf(full, 0));
+            if (half >= 0) {
+                first = (int)ceilf(clamp(cx - half - 0.5f, (float)b[0], (float)b[2]));
+                last = (int)floorf(clamp(cx + half - 0.5f, (float)b[0] - 1, (float)b[2] - 1)) + 1;
+                if (last < first) last = first;
+                /* Keep the original rounding at fractional boundaries. Coverage
+                   cannot decrease towards the center of a rounded rectangle. */
+                while (first < last && rect_coverage(fabsf(first + 0.5f - cx) - hx, qy, radius) != 255u) ++first;
+                while (last > first && rect_coverage(fabsf(last - 0.5f - cx) - hx, qy, radius) != 255u) --last;
+            }
         }
+        for (int col = b[0]; col < first; ++col)
+            blend(col, row, color, rect_coverage(fabsf(col + 0.5f - cx) - hx, qy, radius));
+        fill_span(row, first, last, color);
+        for (int col = last; col < b[2]; ++col)
+            blend(col, row, color, rect_coverage(fabsf(col + 0.5f - cx) - hx, qy, radius));
     }
 }
 void zgpui_line(float x1, float y1, float x2, float y2, float width, uint32_t color) {
@@ -208,8 +249,14 @@ float zgpui_text(const char *text, float x, float y, int size, int bold, uint32_
 }
 float zgpui_measure(const char *text, int size, int bold) {
     if (!text || !*text) return 0;
-    Text *item = get_text(text, size, bold);
-    return item ? item->advance : 0;
+    /* Probing widths must not allocate masks or evict visible text. */
+    for (int i = 0; i < CACHE_COUNT; ++i)
+        if (cache[i].text && cache[i].size == size && cache[i].bold == bold &&
+            strcmp(cache[i].text, text) == 0) {
+            cache[i].stamp = ++clock_tick;
+            return cache[i].advance;
+        }
+    return zgpui_text_advance(text, size, bold);
 }
 void zgpui_clip(int x, int y, int width, int height) {
     long long right = (long long)x + (width > 0 ? width : 0);

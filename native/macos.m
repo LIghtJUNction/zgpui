@@ -77,6 +77,19 @@ int zgpui_event(ZgpuiWindow *w,ZgpuiEvent *out,int timeout){
     }
 }
 void zgpui_clipboard(ZgpuiWindow *w,const char *text){(void)w;@autoreleasepool{NSPasteboard *p=[NSPasteboard generalPasteboard];[p clearContents];[p setString:[NSString stringWithUTF8String:text] forType:NSPasteboardTypeString];}}
+float zgpui_text_advance(const char *text,int size,int bold){
+    if(!text||!*text||size<1||size>96)return 0;
+    @autoreleasepool{
+        NSString *string=[NSString stringWithUTF8String:text];if(!string)return 0;
+        NSFont *font=font_for(font_family,size,bold);if(!font)return 0;
+        NSAttributedString *attributed=[[[NSAttributedString alloc]initWithString:string
+            attributes:@{NSFontAttributeName:font}]autorelease];
+        CTLineRef line=CTLineCreateWithAttributedString((CFAttributedStringRef)attributed);
+        if(!line)return 0;
+        float advance=(float)CTLineGetTypographicBounds(line,NULL,NULL,NULL);
+        CFRelease(line);return advance;
+    }
+}
 ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold){
     ZgpuiBitmap out={0};@autoreleasepool{
         NSString *string=[NSString stringWithUTF8String:text];if(!string)return out;

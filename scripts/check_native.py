@@ -82,6 +82,7 @@ def main():
         run(sys.executable, "scripts/test_fonts.py", "-v")
     if software:
         run(sys.executable, "scripts/test_software.py", "-v")
+        run(sys.executable, "scripts/test_software_rect.py")
     if args.package:
         run("cargo", "package", *common)
     target = Path(env.get("CARGO_TARGET_DIR", "target"))

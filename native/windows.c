@@ -71,9 +71,17 @@ static LRESULT CALLBACK procedure(HWND h,UINT message,WPARAM wp,LPARAM lp){
 }
 ZgpuiWindow *zgpui_open(const char *title,int width,int height,char *error,size_t capacity){
     SetProcessDPIAware();ZgpuiWindow *w=calloc(1,sizeof(*w));if(!w)return NULL;
-    HINSTANCE instance=GetModuleHandleW(NULL);WNDCLASSW cls={0};cls.style=CS_OWNDC;cls.lpfnWndProc=procedure;cls.hInstance=instance;cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));if(!cls.hIcon)cls.hIcon=LoadIconW(NULL,IDI_APPLICATION);cls.hCursor=LoadCursorW(NULL,IDC_ARROW);cls.lpszClassName=L"ProjectZNativeUI";RegisterClassW(&cls);
-    wchar_t wide[256];MultiByteToWideChar(CP_UTF8,0,title,-1,wide,256);RECT rect={0,0,width,height};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,FALSE);
+    HINSTANCE instance=GetModuleHandleW(NULL);WNDCLASSW cls={0};cls.style=CS_OWNDC;cls.lpfnWndProc=procedure;cls.hInstance=instance;cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));if(!cls.hIcon)cls.hIcon=LoadIconW(NULL,MAKEINTRESOURCEW(32512));cls.hCursor=LoadCursorW(NULL,MAKEINTRESOURCEW(32512));cls.lpszClassName=L"ProjectZNativeUI";RegisterClassW(&cls);
+    int count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,title,-1,NULL,0);
+    if(count<=0){snprintf(error,capacity,"Invalid UTF-8 window title.");free(w);return NULL;}
+    wchar_t *wide=calloc((size_t)count,sizeof(wchar_t));
+    if(!wide){snprintf(error,capacity,"Cannot allocate the window title.");free(w);return NULL;}
+    if(!MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,title,-1,wide,count)){
+        snprintf(error,capacity,"Cannot convert the window title.");free(wide);free(w);return NULL;
+    }
+    RECT rect={0,0,width,height};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,FALSE);
     w->window=CreateWindowExW(0,cls.lpszClassName,wide,WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,rect.right-rect.left,rect.bottom-rect.top,NULL,NULL,instance,w);
+    free(wide);
     if(!w->window){snprintf(error,capacity,"Win32 window creation failed (%lu).",GetLastError());free(w);return NULL;}
     w->dc=GetDC(w->window);PIXELFORMATDESCRIPTOR format={0};format.nSize=sizeof(format);format.nVersion=1;format.dwFlags=PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER;format.iPixelType=PFD_TYPE_RGBA;format.cColorBits=24;format.cAlphaBits=8;
     int selected=ChoosePixelFormat(w->dc,&format);
@@ -93,6 +101,23 @@ void zgpui_clipboard(ZgpuiWindow *w,const char *text){
     int count=MultiByteToWideChar(CP_UTF8,0,text,-1,NULL,0);HGLOBAL data=GlobalAlloc(GMEM_MOVEABLE,(SIZE_T)count*sizeof(wchar_t));if(!data)return;
     wchar_t *p=GlobalLock(data);if(!p){GlobalFree(data);return;}MultiByteToWideChar(CP_UTF8,0,text,-1,p,count);GlobalUnlock(data);
     if(OpenClipboard(w->window)){EmptyClipboard();if(!SetClipboardData(CF_UNICODETEXT,data))GlobalFree(data);CloseClipboard();}else GlobalFree(data);
+}
+float zgpui_text_advance(const char *text,int size,int bold){
+    if(!text||!*text||size<1||size>96)return 0;
+    int count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,text,-1,NULL,0);
+    if(count<=0)return 0;
+    wchar_t *wide=calloc((size_t)count,sizeof(wchar_t));if(!wide)return 0;
+    if(!MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,text,-1,wide,count)){free(wide);return 0;}
+    HDC dc=CreateCompatibleDC(NULL);if(!dc){free(wide);return 0;}
+    HFONT font=make_font(font_family,size,bold);
+    if(!font){DeleteDC(dc);free(wide);return 0;}
+    HGDIOBJ previous=SelectObject(dc,font);float advance=0;
+    if(previous&&previous!=HGDI_ERROR){
+        SIZE extent={0};
+        if(GetTextExtentPoint32W(dc,wide,count-1,&extent))advance=(float)extent.cx;
+        SelectObject(dc,previous);
+    }
+    DeleteObject(font);DeleteDC(dc);free(wide);return advance;
 }
 ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold){
     ZgpuiBitmap out={0};int count=MultiByteToWideChar(CP_UTF8,0,text,-1,NULL,0);if(count<=0||count>8192)return out;wchar_t *wide=calloc(count,sizeof(wchar_t));if(!wide)return out;MultiByteToWideChar(CP_UTF8,0,text,-1,wide,count);

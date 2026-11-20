@@ -13,6 +13,8 @@ void zgpui_clipboard(ZgpuiWindow *window,const char *text);
 void zgpui_size(ZgpuiWindow *window,int *width,int *height);
 /* Copies the family; failure leaves the old font and text cache intact. */
 int zgpui_set_font_family(ZgpuiWindow *window,const char *family,char *error,size_t error_size);
+/* Same advance as rasterize, without allocating a bitmap or GPU texture. */
+float zgpui_text_advance(const char *text,int size,int bold);
 ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold);
 void zgpui_font_shutdown(void);
 /* Requires the owning renderer context; preserves geometry and framebuffer. */

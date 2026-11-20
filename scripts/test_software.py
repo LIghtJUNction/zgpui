@@ -25,7 +25,10 @@ void *__wrap_mmap(void *at,size_t bytes,int prot,int flags,int fd,off_t offset) 
     if(fail_next_mapping) { --fail_next_mapping; errno=ENOMEM; return MAP_FAILED; }
     return __real_mmap(at,bytes,prot,flags,fd,offset);
 }
-static int raster_calls;
+static int raster_calls, metric_calls;
+float zgpui_text_advance(const char *text,int size,int bold) {
+    (void)text;(void)size;(void)bold;++metric_calls;return 1.5f;
+}
 ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold) {
     (void)text;(void)size;(void)bold;
     ++raster_calls;
@@ -81,12 +84,17 @@ static void text(void) {
     zgpui_begin(8,8,0x000000ff);
     assert(zgpui_text("same",1,1,15,0,0x0000ffff)==1.5f&&raster_calls==1);
     assert(!memcmp(saved,zgpui_software_pixels(&w,&h),sizeof(saved)));
-    assert(zgpui_measure("same",16,0)==1.5f&&raster_calls==2);
+    assert(zgpui_measure("same",16,0)==1.5f&&raster_calls==1&&metric_calls==1);
     for(int i=0;i<200;i++){char key[32];snprintf(key,sizeof(key),"text-%d",i);zgpui_measure(key,15,0);}
-    int before=raster_calls;zgpui_measure("same",15,0);assert(raster_calls==before+1);
+    assert(raster_calls==1&&metric_calls==201);
+    /* Width probes preserve the mask used by the next visible frame. */
+    zgpui_text("same",1,1,15,0,0xffffffff);assert(raster_calls==1);
+    for(int i=0;i<200;i++){char key[32];snprintf(key,sizeof(key),"text-%d",i);zgpui_text(key,0,0,15,0,0xffffffff);}
+    int before=raster_calls;
+    zgpui_text("same",1,1,15,0,0xffffffff);assert(raster_calls==before+1);
     zgpui_gpu_destroy();zgpui_gpu_destroy();
     zgpui_begin(8,8,0x000000ff);
-    before=raster_calls;zgpui_measure("same",15,0);assert(raster_calls==before+1);
+    before=raster_calls;zgpui_measure("same",15,0);assert(raster_calls==before);
 }
 static void resize(void) {
     zgpui_begin(8,8,0x000000ff);

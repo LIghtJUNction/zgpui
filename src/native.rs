@@ -445,17 +445,97 @@ impl Canvas<'_> {
         bold: bool,
         color: u32,
     ) {
-        if self.measure(text, size, bold) <= max_width {
-            self.text(text, x, y, size, bold, color);
-            return;
-        }
-        let mut cut = text.to_owned();
-        while !cut.is_empty() && self.measure(&(cut.clone() + "…"), size, bold) > max_width {
-            cut.pop();
-        }
-        self.text(&(cut + "…"), x, y, size, bold, color);
+        let fitted = fit_ellipsis(text, max_width, |value| self.measure(value, size, bold));
+        self.text(&fitted, x, y, size, bold, color);
     }
 }
+/// Find a measured, UTF-8-safe prefix with logarithmically many width probes.
+/// Shaping can make prefix widths nonmonotonic; the result is always a prefix
+/// whose complete form including the ellipsis was measured to fit.
+fn fit_ellipsis(
+    text: &str,
+    max_width: f32,
+    mut measure: impl FnMut(&str) -> f32,
+) -> std::borrow::Cow<'_, str> {
+    use std::borrow::Cow;
+    if text.is_empty() || max_width.is_nan() || max_width <= 0. {
+        return Cow::Borrowed("");
+    }
+    if measure(text) <= max_width {
+        return Cow::Borrowed(text);
+    }
+    let ellipsis_width = measure("…");
+    if ellipsis_width.is_nan() || ellipsis_width > max_width {
+        return Cow::Borrowed("");
+    }
+    let (mut low, mut high) = (0, text.len());
+    let mut candidate = String::with_capacity(text.len().min(256) + 3);
+    while low < high {
+        let mut end = low + (high - low).div_ceil(2);
+        while !text.is_char_boundary(end) {
+            end += 1;
+        }
+        candidate.clear();
+        candidate.push_str(&text[..end]);
+        candidate.push('…');
+        if measure(&candidate) <= max_width {
+            low = end;
+        } else {
+            high = text[..end].char_indices().next_back().map_or(0, |(i, _)| i);
+        }
+    }
+    candidate.clear();
+    candidate.push_str(&text[..low]);
+    candidate.push('…');
+    Cow::Owned(candidate)
+}
+
+#[cfg(test)]
+mod ellipsis_tests {
+    use super::fit_ellipsis;
+    use std::borrow::Cow;
+
+    #[test]
+    fn fits_without_allocating_and_respects_tiny_widths() {
+        let width = |value: &str| value.chars().count() as f32;
+        assert!(matches!(
+            fit_ellipsis("hello", 5., width),
+            Cow::Borrowed("hello")
+        ));
+        assert_eq!(fit_ellipsis("hello", 0.5, width), "");
+        assert_eq!(fit_ellipsis("hello", 1., width), "…");
+        assert_eq!(fit_ellipsis("hello", -1., width), "");
+        assert_eq!(fit_ellipsis("hello", f32::NAN, width), "");
+    }
+
+    #[test]
+    fn bounds_long_text_probes_and_keeps_unicode_valid() {
+        for text in ["a".repeat(100_000), "世界🚀e\u{301}".repeat(2_000)] {
+            let mut calls = 0;
+            let fitted = fit_ellipsis(&text, 18., |s| {
+                calls += 1;
+                s.chars().count() as f32
+            });
+            assert!(fitted.ends_with('…'));
+            assert!(fitted.chars().count() <= 18);
+            assert!(text.starts_with(fitted.trim_end_matches('…')));
+            assert!(calls <= usize::BITS + 2, "{calls} width probes");
+        }
+    }
+
+    #[test]
+    fn returns_a_measured_fit_when_shaping_widths_are_not_monotonic() {
+        let width = |value: &str| match value {
+            "abcdefgh" => 10.,
+            "abcdef…" => 2.,
+            _ => value.chars().count() as f32,
+        };
+        let fitted = fit_ellipsis("abcdefgh", 3., width);
+        assert!(width(&fitted) <= 3.);
+        assert!(fitted.ends_with('…'));
+    }
+}
+
 impl Drop for Canvas<'_> {
     fn drop(&mut self) {
         unsafe { zgpui_unclip() }

@@ -118,11 +118,14 @@ static void tiles(void){
     free(tiled);free(baseline);
 }
 static void budget(void){
-    forced_limit=256;
+    forced_limit=256;zgpui_begin(WIDTH,HEIGHT,0x161412ff);
     for(int cycle=0;cycle<2;cycle++){
         for(int i=0;i<120;i++){
             char text[128];memset(text,'M',80);snprintf(text+80,sizeof(text)-80," %d-%d",cycle,i);
-            assert(zgpui_measure(text,42,0)>1000);
+            size_t before_bytes=live_bytes;int before_uploads=image_calls;
+            float width=zgpui_measure(text,42,0);assert(width>1000);
+            assert(live_bytes==before_bytes && image_calls==before_uploads);
+            assert(zgpui_text(text,0,0,42,0,0xffffffff)==width);
             assert(live_bytes<=2097152 && texture_bytes==live_bytes);
         }
         assert(peak_bytes>1048576 && peak_bytes<=2097152 && live_count>1);
@@ -130,21 +133,27 @@ static void budget(void){
     }
 }
 static void failed_upload(void){
-    forced_limit=64;fail_after=1;
+    forced_limit=64;fail_after=1;zgpui_begin(WIDTH,HEIGHT,0x161412ff);
     char text[301];memset(text,'M',300);text[300]=0;
-    assert(zgpui_measure(text,20,0)==0);
+    int uploads=image_calls;
+    assert(zgpui_measure(text,20,0)>WIDTH && image_calls==uploads && fail_after==1);
     assert(!live_bytes && !live_count && !texture_bytes);
-    assert(zgpui_measure(text,20,0)>WIDTH && live_count>1);
+    assert(zgpui_text(text,0,0,20,0,0xffffffff)==0);
+    assert(!live_bytes && !live_count && !texture_bytes);
+    assert(zgpui_text(text,0,0,20,0,0xffffffff)>WIDTH && live_count>1);
     assert(glGetError()==GL_NO_ERROR);
     zgpui_clear_text_cache();assert(!live_bytes && !live_count);
 }
 static void failed_generation(void){
+    zgpui_begin(WIDTH,HEIGHT,0x161412ff);
     for(int failure=1;failure<=2;failure++){
         int uploads=image_calls;fail_next_gen=failure;
-        assert(zgpui_measure("A generated texture must be owned",20,0)==0);
+        assert(zgpui_measure("A generated texture must be owned",20,0)>20);
+        assert(image_calls==uploads && !live_bytes && !live_count && fail_next_gen==failure);
+        assert(zgpui_text("A generated texture must be owned",0,0,20,0,0xffffffff)==0);
         assert(image_calls==uploads && !live_bytes && !live_count && !texture_bytes);
         assert(glGetError()==GL_NO_ERROR);
-        assert(zgpui_measure("A generated texture must be owned",20,0)>20);
+        assert(zgpui_text("A generated texture must be owned",0,0,20,0,0xffffffff)>20);
         assert(image_calls>uploads && live_count>0);
         zgpui_clear_text_cache();assert(!live_bytes && !live_count);
     }

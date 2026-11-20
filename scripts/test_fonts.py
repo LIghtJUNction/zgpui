@@ -78,6 +78,38 @@ static uint64_t bitmap_hash(ZgpuiBitmap b) {
     assert(ink>0);
     return h;
 }
+static void measurement(void) {
+    const char *samples[]={"Window Backup Play 012345", "Minecraft 世界 备份 启动器",
+        "日本語 한국어", "Cafe\xcc\x81 \xce\xa9 \xd0\x96", "AV fi ffi"};
+    for(int bold=0;bold<2;bold++)for(int size=12;size<=32;size+=10)
+        for(size_t i=0;i<sizeof(samples)/sizeof(samples[0]);i++){
+            float advance=zgpui_text_advance(samples[i],size,bold);
+            /* Independently preserve the pre-optimization rendered-glyph width. */
+            float rendered_advance=0;
+            FT_Face regular=face_for('A',size,bold);assert(regular);
+            const unsigned char *p=(const unsigned char*)samples[i];
+            while(*p){
+                uint32_t cp=codepoint(&p);
+                FT_Face face=FT_Get_Char_Index(regular,cp)?regular:face_for(cp,size,bold);
+                if(face&&!FT_Load_Char(face,cp,FT_LOAD_RENDER))
+                    rendered_advance+=(float)(face->glyph->advance.x>>6);
+            }
+            ZgpuiBitmap bitmap=zgpui_rasterize(samples[i],size,bold);
+            assert(bitmap_hash(bitmap));
+            assert(advance==rendered_advance);
+            assert(advance==bitmap.advance && advance==zgpui_measure(samples[i],size,bold));
+            free(bitmap.pixels);
+        }
+    char long_text[16001];memset(long_text,'W',sizeof(long_text)-1);long_text[16000]=0;
+    /* The bitmap limit must not turn an overflowing label into zero width. */
+    assert(zgpui_text_advance(long_text,20,0)>8192);
+    assert(zgpui_measure(long_text,20,0)>8192);
+    ZgpuiBitmap large=zgpui_rasterize(long_text,20,0);assert(!large.pixels);
+    assert(zgpui_text_advance("",20,0)==0);
+    assert(zgpui_text_advance("invalid",0,0)==0);
+    zgpui_gpu_destroy();zgpui_font_shutdown();
+    assert(config_loads==config_destroys);
+}
 static void matching(void) {
     const uint32_t samples[]={0x41,0xe9,0x3a9,0x416,0x9aa8,0x6f22,0x3042,0xac00};
     for(size_t s=0;s<sizeof(samples)/sizeof(samples[0]);s++) {
@@ -222,7 +254,8 @@ static void window_probe(void) {
 }
 int main(int argc,char **argv) {
     assert(argc==2);
-    if(!strcmp(argv[1],"matching"))matching();
+    if(!strcmp(argv[1],"measurement"))measurement();
+    else if(!strcmp(argv[1],"matching"))matching();
     else if(!strcmp(argv[1],"caching"))caching();
     else if(!strcmp(argv[1],"shared-weight"))shared_weight();
     else if(!strcmp(argv[1],"host-config"))host_config();
@@ -348,6 +381,9 @@ class LinuxFontTests(unittest.TestCase):
                     "UBSAN_OPTIONS":"halt_on_error=1"})
         env.update(environment or {})
         subprocess.run([str(self.binary),case],check=True,env=env,timeout=60)
+
+    def test_measurement_matches_real_glyph_advance(self):
+        self.run_case("measurement")
 
     def test_locale_matching_uses_system_defaults(self):
         for environment in [
