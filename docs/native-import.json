@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "source_repository": "https://github.com/LIghtJUNction/zui",
+  "source_commit": "ae600e37deafda87f4181bbc7b6db0901a41831b",
+  "source_base_commit": "a2d976973e890af711636914388b6530787bab00",
+  "source_worktree_clean_before_and_after": true,
+  "files": [
+    {
+      "source_path": "src/lib.rs",
+      "source_sha256": "4827abc24ab9d2f7cbe3708486b8ae2ef9a4de064a0e967d27876e9e64bf99c7",
+      "imported_path": "src/native.rs"
+    },
+    {
+      "source_path": "build.rs",
+      "source_sha256": "83fd7e34b76705b365932433963d214790d161a01557f2793e3d1c0bd73331d8",
+      "imported_path": "build.rs"
+    },
+    {
+      "source_path": "native/linux.c",
+      "source_sha256": "8a3ccd7e5afb086ff9944020f3bbb9bcdf0f5b96e480297f7025ea2dc4b0620b",
+      "imported_path": "native/linux.c"
+    },
+    {
+      "source_path": "native/windows.c",
+      "source_sha256": "a3af230f84c58d088037dc3048435986b9ff96b64d21e7657c45fbf278a098f4",
+      "imported_path": "native/windows.c"
+    },
+    {
+      "source_path": "native/macos.m",
+      "source_sha256": "055ef2c3b7d508e7c36813862c16a353b0e34b979fdaa44a98855b92793163dc",
+      "imported_path": "native/macos.m"
+    },
+    {
+      "source_path": "native/draw.c",
+      "source_sha256": "21f37f9e40b3dd7b413d50725db7ef64b3732116f580d380f5a0a81cf44f5d18",
+      "imported_path": "native/draw.c"
+    },
+    {
+      "source_path": "native/draw_software.c",
+      "source_sha256": "254968362aaf73aaeb1adbda6f8ca0c7b2ef4d97cacd5c56df733241010a1fe2",
+      "imported_path": "native/draw_software.c"
+    },
+    {
+      "source_path": "native/zui.h",
+      "source_sha256": "797b0c4190d6b79ffad171d531b9609c40106bc475682ca85a14b083710162a5",
+      "imported_path": "native/zgpui.h"
+    },
+    {
+      "source_path": "examples/window.rs",
+      "source_sha256": "a86ffecdc623a3411d244886bfca02b00968d2504733c30ffdbfc6984d82f801",
+      "imported_path": "examples/window.rs"
+    },
+    {
+      "source_path": "examples/window_probe.rs",
+      "source_sha256": "bef8d404f56f3ac7116e856ca903c10e2c1ee7fe928b56687ad94f4cdee3c241",
+      "imported_path": "examples/window_probe.rs"
+    },
+    {
+      "source_path": "scripts/check_x11.py",
+      "source_sha256": "7a18f4bd5f0f3af91427edc589b8e20728a25b3f67468a0b2a76f01b18bb1e48",
+      "imported_path": "scripts/check_x11.py"
+    },
+    {
+      "source_path": "scripts/test_software.py",
+      "source_sha256": "f06d88f0fba3b1fcbad49382ba712c9dcc8511ea39c925a33600c3482565cbac",
+      "imported_path": "scripts/test_software.py"
+    }
+  ],
+  "wire_protocol": "Existing ZUI;1; scene protocol is unchanged."
+}

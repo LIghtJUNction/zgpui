@@ -1,16 +1,30 @@
 [package]
 name = "zgpui"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.100"
 license = "MIT"
 authors = ["LIghtJUNction"]
 repository = "https://github.com/LIghtJUNction/zgpui"
-description = "Bounded, platform-independent no_std UI scenes, layout and renderer contracts"
+description = "Bounded no_std UI scenes with optional native GPU and CPU windows"
 readme = "README.md"
 keywords = ["gui", "ui", "no-std", "layout", "project-z"]
 categories = ["gui", "no-std"]
-include = ["/src/**", "/examples/**", "/benches/**", "/README.md", "/docs/**", "/LICENSE", "/Cargo.toml"]
+include = ["/src/**", "/native/**", "/build.rs", "/examples/**", "/benches/**", "/README.md", "/docs/**", "/LICENSE", "/Cargo.toml", "/scripts/check_x11.py", "/scripts/test_software.py"]
+
+[features]
+default = []
+std = []
+native = ["std"]
+linux-software = ["native"]
+
+[[example]]
+name = "window"
+required-features = ["native"]
+
+[[example]]
+name = "window_probe"
+required-features = ["native"]
 
 [[bench]]
 name = "protocol"

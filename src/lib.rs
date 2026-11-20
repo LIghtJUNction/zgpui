@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
-#![no_std]
-#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "native"), forbid(unsafe_code))]
+#![deny(unsafe_code)]
 
 extern crate alloc;
 
@@ -9,6 +10,11 @@ use alloc::vec::Vec;
 use core::fmt::{self, Write};
 
 pub mod layout;
+
+/// Optional native windows, immediate widgets and platform rendering.
+#[cfg(feature = "native")]
+#[allow(unsafe_code)]
+pub mod native;
 mod wire;
 
 pub const VERSION: u8 = 1;

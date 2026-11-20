@@ -1,10 +1,12 @@
 # zgpui
 
-A platform-independent UI core for native applications, terminals and embedded hosts.
+A portable UI core with optional native GPU and CPU windows for Project Z.
 
-zgpui turns a bounded scene tree into pixel layout and renderer calls. The host
-owns its window, graphics API, fonts, images and event loop. The library uses
-`no_std` + `alloc`, has **zero Cargo dependencies**, and forbids unsafe code.
+zgpui turns bounded scenes into layout and renderer calls. Default builds use
+`no_std` + `alloc`, have **zero Cargo dependencies**, and forbid unsafe code.
+The optional `native` module supplies windows and immediate widgets through
+platform libraries; `linux-software` selects a CPU renderer instead of OpenGL
+on Linux. Applications own their state and event loop.
 
 ## Core
 
@@ -54,12 +56,23 @@ button-action path.
 
 The same core supports Linux, macOS, Windows, WebAssembly and bare-metal Rust
 targets. A host supplies an allocator and implements rendering and input.
-Desktop window creation, GPU drivers and text shaping belong to the host.
+Desktop hosts can opt into `zgpui::native` for window creation and immediate
+widgets, or keep their own backend. Drivers and application policy stay outside
+the scene core. Native text rendering has its own platform limitations.
 
 ztty uses zgpui for its scene state and layout, with its own X11/GPU rendering
 and PTY input routing. Other hosts can use software rendering, native controls
 or a GPU backend through the same contract.
 See [platform integration](docs/platforms.md).
+
+## Native windows
+
+Enable `native` for the platform OpenGL backend, or `linux-software` for Linux
+CPU rendering. Import windows and widgets from `zgpui::native`. The portable
+scene API and its default features remain unchanged.
+
+[Native integration and migration](docs/native.md) covers features, system
+libraries, examples and the move from the former native UI package.
 
 ## Terminal adapter
 
