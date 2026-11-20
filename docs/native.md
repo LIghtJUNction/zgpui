@@ -97,3 +97,12 @@ window checks under Xvfb do not measure hardware GPU performance.
 The frozen native import and original file hashes are recorded in
 [native-import.json](native-import.json). Historical source names in that
 receipt identify provenance; current dependency and import names are `zgpui`.
+
+The formal native entry point is `scripts/check_native.py`. It accepts
+`--features native` or `--features linux-software`; `--window --package`
+adds native-window and packaged-source checks. Release jobs use those options.
+
+[Local validation evidence](native-validation.json) records the frozen runtime
+source, core and native checks, four real X11 cases per backend, and CPU driver
+dependency inspection. It reports no hardware benchmark or whole-application
+memory target.

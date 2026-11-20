@@ -43,6 +43,55 @@ jobs:
       - name: Host contract example
         run: cargo run --locked --example host
 
+  native:
+    name: Native ${{ matrix.features }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            features: native
+          - os: ubuntu-latest
+            features: linux-software
+          - os: windows-latest
+            features: native
+          - os: macos-latest
+            features: native
+    env:
+      CARGO_BUILD_JOBS: "1"
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+          components: clippy
+      - name: Linux native development packages
+        if: runner.os == 'Linux'
+        env:
+          NATIVE_FEATURES: ${{ matrix.features }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libx11-dev libfreetype6-dev libfontconfig1-dev xvfb xauth xdotool x11-utils
+          if [ "$NATIVE_FEATURES" = native ]; then
+            sudo apt-get install -y libgl1-mesa-dev
+          fi
+      - name: Validate the exact native candidate
+        run: python scripts/check_native.py --features ${{ matrix.features }} --window --package
+      - name: Preserve native evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: native-${{ matrix.os }}-${{ matrix.features }}
+          path: artifacts/native-checks/
+          if-no-files-found: warn
+          retention-days: 14
+
   no-std:
     name: Library on ${{ matrix.target }}
     runs-on: ubuntu-latest
@@ -106,9 +155,13 @@ jobs:
               ["cargo", "package", "--locked", "--list"], text=True,
           ).splitlines())
           leaked = sorted(path for path in files if path.startswith("artifacts/"))
-          missing = sorted({"README.md", "LICENSE"} - files)
+          required = {"README.md", "LICENSE", "build.rs", "src/native.rs",
+                      "native/zgpui.h", "native/linux.c", "native/windows.c",
+                      "native/macos.m", "native/draw.c", "native/draw_software.c",
+                      "scripts/check_x11.py", "scripts/test_software.py", "scripts/check_native.py"}
+          missing = sorted(required - files)
           if leaked or missing:
               raise SystemExit(f"Invalid package contents: leaked={leaked}, missing={missing}")
-          print("Root README/LICENSE included; ignored artifacts excluded")
+          print("Core and native sources included; ignored artifacts excluded")
           PY
       - run: cargo package --locked

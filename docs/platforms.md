@@ -1,8 +1,9 @@
 # Platform integration
 
 zgpui owns scene validation, scene revisions, layout and action identity.
-A host owns the operating-system integration and decides when a completed frame
-becomes visible.
+A host chooses its operating-system integration and decides when a completed
+frame becomes visible. The optional `native` module provides the shared window
+and immediate-widget backend documented in [native integration](native.md).
 
 ## Responsibilities
 
@@ -79,9 +80,11 @@ not write to a PTY, execute a command or open a URL.
 | `wasm32-unknown-unknown` | Library compilation | Supply a WebAssembly host and allocator |
 | `x86_64-unknown-none` | Library compilation | Supply an embedded or bare-metal host |
 
-This matrix describes the core and its validation jobs. Native window and GPU
-backends have their own integration tests in the applications that provide them.
-ztty's native Wayland host is developed separately from this core.
+This matrix describes the default core. Optional native builds additionally
+validate Linux OpenGL and CPU backends, Windows WGL and macOS NSOpenGLContext.
+Release jobs run the backend checks on their actual platform; configured jobs
+are not a claim that a particular source revision passed. ztty can keep its own
+window renderer and its native Wayland host independently of these features.
 
 ## Examples and compatibility
 

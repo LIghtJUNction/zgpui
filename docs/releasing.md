@@ -26,9 +26,13 @@ Open **Actions → Release zgpui → Run workflow** and select `main`.
 The workflow then:
 
 1. Records the candidate commit and version.
-2. Runs Linux, macOS and Windows tests against that exact SHA.
+2. Runs core and native Linux, macOS and Windows tests against that exact SHA.
+   Linux native jobs exercise OpenGL and CPU rendering separately, including
+   real private-window checks and CPU sanitizer coverage.
 3. Checks WebAssembly, bare-metal compilation, formatting, Clippy,
-   zero dependencies and the packaged crate from that same SHA.
+   zero dependencies and the packaged crate from that same SHA. Native builds
+   also compile the packaged crate with their feature enabled, preventing a
+   default-only package check from hiding missing C sources.
 4. Tags the validated candidate and publishes the crate.
 5. Creates the GitHub Release and attaches the source crate.
 
@@ -48,3 +52,11 @@ also match; different bytes fail the run without being overwritten.
 This supports retries after an upload completes but Cargo's index wait times
 out, or after GitHub Release creation is interrupted. Missing credentials,
 network errors and mismatched artifacts remain failures.
+
+## Local native validation
+
+`python3 scripts/check_native.py --features native --window --package` uses
+the same native gates as a release. On Linux, run it again with
+`--features linux-software` for the independent CPU path. Add `--offline`
+when all required toolchains are already installed. Windows checks acquire
+the installed MSVC environment without printing its values.

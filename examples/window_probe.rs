@@ -10,6 +10,7 @@ fn main() -> Result<(), String> {
             .unwrap_or(Ok(default))
     };
     let mut window = Window::new(title, dimension(1, 660)?, dimension(2, 264)?)?;
+    println!("{}", window.gpu());
     {
         let mut canvas = window.begin(colors::SURFACE);
         canvas.text(title, 18., 18., 18, true, colors::TEXT);

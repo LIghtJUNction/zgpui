@@ -1,0 +1,325 @@
+{
+  "schema_version": 1,
+  "runtime_source_commit": "eb8dbbe7d9a44abd9a8683dfa0588200a0595edb",
+  "native_import_source": "ae600e37deafda87f4181bbc7b6db0901a41831b",
+  "platform": "x86_64 Linux",
+  "test_counts": {
+    "core-tests": 28,
+    "native-tests": 30,
+    "software-tests": 30
+  },
+  "checks": [
+    {
+      "gate": "core-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 85.398
+    },
+    {
+      "gate": "native-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--lib",
+        "--features",
+        "native"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.435
+    },
+    {
+      "gate": "software-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--lib",
+        "--features",
+        "linux-software"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.459
+    },
+    {
+      "gate": "wasm-core",
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--offline",
+        "--lib",
+        "--no-default-features",
+        "--target",
+        "wasm32-unknown-unknown"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.552
+    },
+    {
+      "gate": "baremetal-core",
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--offline",
+        "--lib",
+        "--no-default-features",
+        "--target",
+        "x86_64-unknown-none"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.277
+    },
+    {
+      "gate": "core-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.936
+    },
+    {
+      "gate": "native-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "--all-targets",
+        "--features",
+        "native",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.122
+    },
+    {
+      "gate": "software-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "--all-targets",
+        "--features",
+        "linux-software",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.17
+    },
+    {
+      "gate": "software-sanitizers",
+      "command": [
+        "python3",
+        "-B",
+        "scripts/test_software.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.463
+    }
+  ],
+  "opengl_windows": {
+    "scope": "real X11 properties and geometry on a private X server",
+    "expect_software": false,
+    "hardware_gpu_benchmark": false,
+    "windows": [
+      {
+        "title": "ztype",
+        "instance": "ztype",
+        "class": "Ztype",
+        "requested": [
+          660,
+          264
+        ],
+        "actual": [
+          660,
+          264
+        ],
+        "xprop": "WM_CLASS(STRING) = \"ztype\", \"Ztype\"\nWM_NORMAL_HINTS(WM_SIZE_HINTS):\n\t\tprogram specified minimum size: 660 by 264\n_NET_WM_NAME(UTF8_STRING) = \"ztype\"",
+        "mapped_graphics_libraries": [
+          "libGL.so.1.7.0",
+          "libGLX.so.0.0.0",
+          "libGLX_mesa.so.0.0.0",
+          "libGLdispatch.so.0.0.0",
+          "libLLVM.so.23.1",
+          "libgallium-26.2.4-arch3.1.so"
+        ],
+        "renderer": "llvmpipe (LLVM 23.1.1, 256 bits)"
+      },
+      {
+        "title": "zcall-gui · window check",
+        "instance": "zcall-gui",
+        "class": "Zcall-gui",
+        "requested": [
+          1080,
+          740
+        ],
+        "actual": [
+          1080,
+          740
+        ],
+        "xprop": "WM_CLASS(STRING) = \"zcall-gui\", \"Zcall-gui\"\nWM_NORMAL_HINTS(WM_SIZE_HINTS):\n\t\tprogram specified minimum size: 1080 by 740\n_NET_WM_NAME(UTF8_STRING) = \"zcall-gui · window check\"",
+        "mapped_graphics_libraries": [
+          "libGL.so.1.7.0",
+          "libGLX.so.0.0.0",
+          "libGLX_mesa.so.0.0.0",
+          "libGLdispatch.so.0.0.0",
+          "libLLVM.so.23.1",
+          "libgallium-26.2.4-arch3.1.so"
+        ],
+        "renderer": "llvmpipe (LLVM 23.1.1, 256 bits)"
+      },
+      {
+        "title": "Other.App - identity check",
+        "instance": "other.app",
+        "class": "Other.app",
+        "requested": [
+          512,
+          320
+        ],
+        "actual": [
+          512,
+          320
+        ],
+        "xprop": "WM_CLASS(STRING) = \"other.app\", \"Other.app\"\nWM_NORMAL_HINTS(WM_SIZE_HINTS):\n\t\tprogram specified minimum size: 512 by 320\n_NET_WM_NAME(UTF8_STRING) = \"Other.App - identity check\"",
+        "mapped_graphics_libraries": [
+          "libGL.so.1.7.0",
+          "libGLX.so.0.0.0",
+          "libGLX_mesa.so.0.0.0",
+          "libGLdispatch.so.0.0.0",
+          "libLLVM.so.23.1",
+          "libgallium-26.2.4-arch3.1.so"
+        ],
+        "renderer": "llvmpipe (LLVM 23.1.1, 256 bits)"
+      },
+      {
+        "title": "· native fallback",
+        "instance": "zgpui",
+        "class": "Zgpui",
+        "requested": [
+          320,
+          200
+        ],
+        "actual": [
+          320,
+          200
+        ],
+        "xprop": "WM_CLASS(STRING) = \"zgpui\", \"Zgpui\"\nWM_NORMAL_HINTS(WM_SIZE_HINTS):\n\t\tprogram specified minimum size: 320 by 200\n_NET_WM_NAME(UTF8_STRING) = \"· native fallback\"",
+        "mapped_graphics_libraries": [
+          "libGL.so.1.7.0",
+          "libGLX.so.0.0.0",
+          "libGLX_mesa.so.0.0.0",
+          "libGLdispatch.so.0.0.0",
+          "libLLVM.so.23.1",
+          "libgallium-26.2.4-arch3.1.so"
+        ],
+        "renderer": "llvmpipe (LLVM 23.1.1, 256 bits)"
+      }
+    ]
+  },
+  "cpu_windows": {
+    "scope": "real X11 properties and geometry on a private X server",
+    "expect_software": true,
+    "hardware_gpu_benchmark": false,
+    "windows": [
+      {
+        "title": "ztype",
+        "instance": "ztype",
+        "class": "Ztype",
+        "requested": [
+          660,
+          264
+        ],
+        "actual": [
+          660,
+          264
+        ],
+        "xprop": "WM_CLASS(STRING) = \"ztype\", \"Ztype\"\nWM_NORMAL_HINTS(WM_SIZE_HINTS):\n\t\tprogram specified minimum size: 660 by 264\n_NET_WM_NAME(UTF8_STRING) = \"ztype\"",
+        "mapped_graphics_libraries": [],
+        "renderer": "software (CPU framebuffer + X11)"
+      },
+      {
+        "title": "zcall-gui · window check",
+        "instance": "zcall-gui",
+        "class": "Zcall-gui",
+        "requested": [
+          1080,
+          740
+        ],
+        "actual": [
+          1080,
+          740
+        ],
+        "xprop": "WM_CLASS(STRING) = \"zcall-gui\", \"Zcall-gui\"\nWM_NORMAL_HINTS(WM_SIZE_HINTS):\n\t\tprogram specified minimum size: 1080 by 740\n_NET_WM_NAME(UTF8_STRING) = \"zcall-gui · window check\"",
+        "mapped_graphics_libraries": [],
+        "renderer": "software (CPU framebuffer + X11)"
+      },
+      {
+        "title": "Other.App - identity check",
+        "instance": "other.app",
+        "class": "Other.app",
+        "requested": [
+          512,
+          320
+        ],
+        "actual": [
+          512,
+          320
+        ],
+        "xprop": "WM_CLASS(STRING) = \"other.app\", \"Other.app\"\nWM_NORMAL_HINTS(WM_SIZE_HINTS):\n\t\tprogram specified minimum size: 512 by 320\n_NET_WM_NAME(UTF8_STRING) = \"Other.App - identity check\"",
+        "mapped_graphics_libraries": [],
+        "renderer": "software (CPU framebuffer + X11)"
+      },
+      {
+        "title": "· native fallback",
+        "instance": "zgpui",
+        "class": "Zgpui",
+        "requested": [
+          320,
+          200
+        ],
+        "actual": [
+          320,
+          200
+        ],
+        "xprop": "WM_CLASS(STRING) = \"zgpui\", \"Zgpui\"\nWM_NORMAL_HINTS(WM_SIZE_HINTS):\n\t\tprogram specified minimum size: 320 by 200\n_NET_WM_NAME(UTF8_STRING) = \"· native fallback\"",
+        "mapped_graphics_libraries": [],
+        "renderer": "software (CPU framebuffer + X11)"
+      }
+    ]
+  },
+  "cpu_direct_native_dependencies": [
+    "libX11.so.6",
+    "libfreetype.so.6",
+    "libfontconfig.so.1",
+    "libgcc_s.so.1",
+    "libc.so.6",
+    "ld-linux-x86-64.so.2"
+  ],
+  "cpu_probe_sha256": "1c368a6dde7ceda2d0ecf5c1eacefc81339e37fe642cde41a6dcb223f2bc6782",
+  "hardware_gpu_benchmark": false,
+  "whole_application_memory_claim": false,
+  "other_native_platforms": "Windows/macOS release gates configured; not run locally."
+}
