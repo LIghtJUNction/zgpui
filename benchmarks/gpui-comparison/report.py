@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Summarize retained raw samples and draw a publication-ready vector figure."""
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -49,6 +50,9 @@ def summarize(runs, allocation_runs):
                 "p50_ns": quantile(samples, 0.5), "p95_ns": quantile(samples, 0.95), "p99_ns": quantile(samples, 0.99),
                 "throughput_per_second": 1e9 / statistics.mean(samples),
                 "median_batch_thread_cpu_ns_per_operation": statistics.median(cpu) if cpu else None,
+                "batch_thread_cpu_available_rounds": len(cpu),
+                "batch_thread_cpu_zero_delta_rounds": sum(
+                    run["measurement"].get("batch_thread_cpu_ns") == 0 for run in records),
                 "median_fixture_setup_ns": statistics.median(run["measurement"]["fixture_setup_ns"] for run in records),
                 "median_peak_process_rss_kib": statistics.median(run["peak_process_rss_kib"] for run in records),
                 "median_involuntary_context_switches": statistics.median(run["involuntary_context_switches"] for run in records),
@@ -66,7 +70,37 @@ def summarize(runs, allocation_runs):
     return results
 
 
-def markdown(rows, metadata):
+def measurement_quality(runs, metadata):
+    cpu = [run["measurement"].get("batch_thread_cpu_ns") for run in runs]
+    rss = [run["peak_process_rss_kib"] for run in runs]
+    rounds = []
+    for number in sorted({run["round"] for run in runs}):
+        values = [run["peak_process_rss_kib"] for run in runs if run["round"] == number]
+        rounds.append({"round": number, "minimum_kib": min(values),
+                       "median_kib": statistics.median(values), "maximum_kib": max(values)})
+    before = metadata.get("host_start", {}).get("cpu_stat")
+    after = metadata.get("host_end", {}).get("cpu_stat")
+    cpu_stat = None
+    if before and after:
+        first, last = before.split(), after.split()
+        if first[0] == last[0] and len(first) >= 9 and len(last) >= 9:
+            changes = [int(end) - int(start) for start, end in zip(first[1:9], last[1:9])]
+            total = sum(changes)
+            cpu_stat = {"cpu": first[0], "fields": ["user", "nice", "system", "idle", "iowait", "irq", "softirq", "steal"],
+                        "deltas_ticks": changes, "total_ticks": total,
+                        "steal_fraction": changes[7] / total if total > 0 and min(changes) >= 0 else None,
+                        "scope": "Whole selected-CPU observation interval; not per-operation CPU time."}
+    return {"timing_invocations": len(runs), "batch_cpu_unavailable_invocations": cpu.count(None),
+            "batch_cpu_zero_delta_invocations": cpu.count(0),
+            "rss_minimum_kib": min(rss), "rss_maximum_kib": max(rss), "rss_by_round": rounds,
+            "selected_cpu_stat": cpu_stat,
+            "reporter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "limitations": ["A zero scheduler-counter delta does not establish zero CPU cost; all zero values are retained.",
+                            "Child peak RSS includes process startup and fixture context; it does not isolate library-owned memory.",
+                            "Paired intervals describe this run, not a noise-free machine or another platform."]}
+
+
+def markdown(rows, metadata, quality):
     lines = ["# Fixed-metric layout measurements", "",
              f"Sources: zgpui `{metadata['sources']['zgpui_baseline_sha']}`, GPUI `{metadata['sources']['gpui_upstream_sha']}` plus recorded visibility-only patch.", "",
              f"Linux CPU {metadata['cpu']}; {metadata['rounds']} paired rounds; {metadata['samples']} individual samples per process. No samples removed.", "",
@@ -79,12 +113,25 @@ def markdown(rows, metadata):
         lines.append(f"| {row['nodes']} | {row['workload']} | {z['p50_ns']:.0f}/{z['p95_ns']:.0f}/{z['p99_ns']:.0f} | {g['p50_ns']:.0f}/{g['p95_ns']:.0f}/{g['p99_ns']:.0f} | {ratio['point']:.2f} [{ratio['lower_95']:.2f}, {ratio['upper_95']:.2f}] |")
     lines += ["", "## CPU, throughput and memory", "",
               "Batch CPU uses Linux `/proc/thread-self/schedstat` run time when available; it includes the common sampling bookkeeping. Allocation counters run in a separate executable. Process RSS includes the test context and shared executable, and is not the library's exclusive memory.", "",
-              "| Nodes | Task | Backend | Batch CPU ns/op | Ops/s | Alloc calls/op | Requested bytes/op | Peak child RSS KiB |",
+              "| Nodes | Task | Backend | Reported batch CPU ns/op | Ops/s | Alloc calls/op | Requested bytes/op | Peak child RSS KiB |",
               "|---:|---|---|---:|---:|---:|---:|---:|"]
     for row in rows:
         for backend, value in row["backends"].items():
             cpu = value["median_batch_thread_cpu_ns_per_operation"]
-            lines.append(f"| {row['nodes']} | {row['workload']} | {backend} | {f'{cpu:.1f}' if cpu is not None else 'unavailable'} | {value['throughput_per_second']:.0f} | {value['allocations_per_operation']:.2f} | {value['requested_bytes_per_operation']:.1f} | {value['median_peak_process_rss_kib']:.0f} |")
+            zero = value["batch_thread_cpu_zero_delta_rounds"]
+            cpu_text = "unavailable" if cpu is None else ("unresolved" if cpu == 0 else f"{cpu:.1f}")
+            if zero:
+                cpu_text += f" [{zero}/{value['round_count']} zero deltas]"
+            lines.append(f"| {row['nodes']} | {row['workload']} | {backend} | {cpu_text} | {value['throughput_per_second']:.0f} | {value['allocations_per_operation']:.2f} | {value['requested_bytes_per_operation']:.1f} | {value['median_peak_process_rss_kib']:.0f} |")
+    lines += ["", "## Counter quality and environment", "",
+              f"The scheduler CPU counter returned a zero batch delta in {quality['batch_cpu_zero_delta_invocations']} of {quality['timing_invocations']} timing processes; {quality['batch_cpu_unavailable_invocations']} counter readings were unavailable. Zero deltas remain in the raw data and medians. An unresolved median is not a claim of zero CPU cost, and rounds with zero deltas are shown explicitly.", "",
+              f"Raw child peak RSS ranged from {quality['rss_minimum_kib']} to {quality['rss_maximum_kib']} KiB. The per-round distribution below keeps process/collector effects visible; a repeated grouped median does not establish equal library memory use. This runner retains earlier samples in its parent process, and this gate does not isolate collector/fork effects from child RSS. Allocation-call and requested-byte counts come from the separate instrumented executable.", "",
+              "| Process round | Child RSS min / median / max (KiB) |", "|---:|---:|"]
+    for value in quality["rss_by_round"]:
+        lines.append(f"| {value['round']} | {value['minimum_kib']}/{value['median_kib']:.0f}/{value['maximum_kib']} |")
+    stat = quality["selected_cpu_stat"]
+    if stat and stat["steal_fraction"] is not None:
+        lines += ["", f"The selected CPU's `/proc/stat` observation interval contained {stat['deltas_ticks'][7]} steal ticks out of {stat['total_ticks']} total observed ticks ({stat['steal_fraction']:.2%}). These are whole-interval counters, not individual-operation CPU time. The [Linux kernel field definitions](https://docs.kernel.org/filesystems/proc.html#miscellaneous-kernel-statistics-in-proc-stat) describe the steal field as involuntary wait. Paired process order and retained tails help describe this observed environment; the intervals do not certify performance on an idle physical machine."]
     lines += ["", "## Scope", "",
               "Fresh includes tree construction, layout, complete geometry reads and destruction. Retained preserves each framework's existing tree and leaves GPUI caching enabled. Resize alternates equal-share widths. Geometry-scan compares zgpui button geometry with an explicit linear adapter over GPUI Bounds; it is not GPUI input dispatch.", "",
               "Native application startup, actual GPU frames, text shaping, glyph pixels, accessibility, platform input and layouts outside zgpui's current component/size limits are not established by these measurements. Fixture setup appears in summary.json as a harness diagnostic and must not be presented as native startup.", "",
@@ -123,10 +170,13 @@ def main():
     parser.add_argument("--no-plot", action="store_true")
     args = parser.parse_args()
     metadata = json.loads((args.directory / "metadata.json").read_text())
-    results = summarize(json.loads((args.directory / "runs.json").read_text()),
+    runs = json.loads((args.directory / "runs.json").read_text())
+    results = summarize(runs,
                         json.loads((args.directory / "allocations.json").read_text()))
+    quality = measurement_quality(runs, metadata)
     (args.directory / "summary.json").write_text(json.dumps(results, indent=2) + "\n")
-    (args.directory / "report.md").write_text(markdown(results, metadata))
+    (args.directory / "quality.json").write_text(json.dumps(quality, indent=2) + "\n")
+    (args.directory / "report.md").write_text(markdown(results, metadata, quality))
     if not args.no_plot:
         plot(results, args.directory / "comparison.svg")
     print(json.dumps({"summary": str(args.directory / "summary.json"), "report": str(args.directory / "report.md")}))

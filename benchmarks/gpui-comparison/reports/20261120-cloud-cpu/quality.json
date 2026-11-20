@@ -1,0 +1,83 @@
+{
+  "timing_invocations": 224,
+  "batch_cpu_unavailable_invocations": 0,
+  "batch_cpu_zero_delta_invocations": 69,
+  "rss_minimum_kib": 11904,
+  "rss_maximum_kib": 124296,
+  "rss_by_round": [
+    {
+      "round": 0,
+      "minimum_kib": 11904,
+      "median_kib": 13676.0,
+      "maximum_kib": 16364
+    },
+    {
+      "round": 1,
+      "minimum_kib": 30444,
+      "median_kib": 30444.0,
+      "maximum_kib": 30444
+    },
+    {
+      "round": 2,
+      "minimum_kib": 48788,
+      "median_kib": 48788.0,
+      "maximum_kib": 48788
+    },
+    {
+      "round": 3,
+      "minimum_kib": 67304,
+      "median_kib": 67304.0,
+      "maximum_kib": 67304
+    },
+    {
+      "round": 4,
+      "minimum_kib": 85760,
+      "median_kib": 85760.0,
+      "maximum_kib": 85760
+    },
+    {
+      "round": 5,
+      "minimum_kib": 104208,
+      "median_kib": 104208.0,
+      "maximum_kib": 104208
+    },
+    {
+      "round": 6,
+      "minimum_kib": 124296,
+      "median_kib": 124296.0,
+      "maximum_kib": 124296
+    }
+  ],
+  "selected_cpu_stat": {
+    "cpu": "cpu0",
+    "fields": [
+      "user",
+      "nice",
+      "system",
+      "idle",
+      "iowait",
+      "irq",
+      "softirq",
+      "steal"
+    ],
+    "deltas_ticks": [
+      1,
+      1746,
+      115,
+      311,
+      0,
+      0,
+      0,
+      348
+    ],
+    "total_ticks": 2521,
+    "steal_fraction": 0.13804046013486712,
+    "scope": "Whole selected-CPU observation interval; not per-operation CPU time."
+  },
+  "reporter_sha256": "8adff4f1d77c235470d715c347e0d0fe02e6d3afbbfbcc0e2c89a9de39ed9d41",
+  "limitations": [
+    "A zero scheduler-counter delta does not establish zero CPU cost; all zero values are retained.",
+    "Child peak RSS includes process startup and fixture context; it does not isolate library-owned memory.",
+    "Paired intervals describe this run, not a noise-free machine or another platform."
+  ]
+}

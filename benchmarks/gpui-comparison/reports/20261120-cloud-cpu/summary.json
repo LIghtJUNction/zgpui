@@ -1,0 +1,1122 @@
+[
+  {
+    "side": 1,
+    "leaves": 1,
+    "nodes": 3,
+    "workload": "fresh",
+    "backends": {
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 2911.172285714286,
+        "p50_ns": 2426,
+        "p95_ns": 2497,
+        "p99_ns": 5712,
+        "throughput_per_second": 343504.23192306526,
+        "median_batch_thread_cpu_ns_per_operation": 3192.6362,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 248865,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 2,
+        "allocations_per_operation": 21.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 26572.0,
+        "peak_additional_requested_bytes": 24364,
+        "round_mean_ns": {
+          "0": 2612.2728,
+          "1": 2981.8666,
+          "2": 2941.4824,
+          "3": 2783.1444,
+          "4": 3018.6392,
+          "5": 3045.2798,
+          "6": 2995.5208
+        }
+      },
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 214.24891428571428,
+        "p50_ns": 162,
+        "p95_ns": 187,
+        "p99_ns": 264,
+        "throughput_per_second": 4667468.226543439,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 5,
+        "median_fixture_setup_ns": 4339,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 5.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 277.0,
+        "peak_additional_requested_bytes": 277,
+        "round_mean_ns": {
+          "0": 164.3564,
+          "1": 168.4082,
+          "2": 171.5082,
+          "3": 178.732,
+          "4": 239.4158,
+          "5": 253.387,
+          "6": 323.9348
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 13.99811859113915,
+      "lower_95": 11.761516353047192,
+      "upper_95": 16.272440411065897,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 1,
+    "leaves": 1,
+    "nodes": 3,
+    "workload": "geometry-scan",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 59.601,
+        "p50_ns": 34,
+        "p95_ns": 45,
+        "p99_ns": 47,
+        "throughput_per_second": 16778241.975805774,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 7,
+        "median_fixture_setup_ns": 4407,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 0.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 0.0,
+        "peak_additional_requested_bytes": 0,
+        "round_mean_ns": {
+          "0": 50.8868,
+          "1": 155.8638,
+          "2": 35.1968,
+          "3": 40.1208,
+          "4": 39.0102,
+          "5": 35.4296,
+          "6": 60.699
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 46.66065714285714,
+        "p50_ns": 37,
+        "p95_ns": 47,
+        "p99_ns": 49,
+        "throughput_per_second": 21431331.259188686,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 6,
+        "median_fixture_setup_ns": 350903,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 0.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 0.0,
+        "peak_additional_requested_bytes": 0,
+        "round_mean_ns": {
+          "0": 41.4336,
+          "1": 39.1276,
+          "2": 67.234,
+          "3": 46.2274,
+          "4": 39.064,
+          "5": 55.473,
+          "6": 38.065
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 0.8900085838503202,
+      "lower_95": 0.5417367522069468,
+      "upper_95": 1.3706007597833065,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 1,
+    "leaves": 1,
+    "nodes": 3,
+    "workload": "resize",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 133.25402857142856,
+        "p50_ns": 116,
+        "p95_ns": 132,
+        "p99_ns": 157,
+        "throughput_per_second": 7504463.547711557,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 6,
+        "median_fixture_setup_ns": 4780,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 1.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 72.0,
+        "peak_additional_requested_bytes": 72,
+        "round_mean_ns": {
+          "0": 137.412,
+          "1": 141.9446,
+          "2": 121.1858,
+          "3": 123.9266,
+          "4": 122.3844,
+          "5": 160.8846,
+          "6": 125.0402
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 1415.1689428571428,
+        "p50_ns": 1198,
+        "p95_ns": 1229,
+        "p99_ns": 1957,
+        "throughput_per_second": 706629.4134331826,
+        "median_batch_thread_cpu_ns_per_operation": 1603.8024,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 322711,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 7.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 2016.0,
+        "peak_additional_requested_bytes": 2000,
+        "round_mean_ns": {
+          "0": 1275.5974,
+          "1": 1306.751,
+          "2": 1414.5938,
+          "3": 1567.9672,
+          "4": 1312.1926,
+          "5": 1630.2236,
+          "6": 1398.857
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 10.630386094014208,
+      "lower_95": 9.803575617924793,
+      "upper_95": 11.494508319757934,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 1,
+    "leaves": 1,
+    "nodes": 3,
+    "workload": "retained",
+    "backends": {
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 258.21402857142857,
+        "p50_ns": 198,
+        "p95_ns": 218,
+        "p99_ns": 298,
+        "throughput_per_second": 3872756.277157012,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 6,
+        "median_fixture_setup_ns": 277988,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 2.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 16.0,
+        "peak_additional_requested_bytes": 8,
+        "round_mean_ns": {
+          "0": 209.9554,
+          "1": 251.659,
+          "2": 221.023,
+          "3": 204.8444,
+          "4": 349.674,
+          "5": 222.135,
+          "6": 348.2074
+        }
+      },
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 151.2292857142857,
+        "p50_ns": 116,
+        "p95_ns": 140,
+        "p99_ns": 187,
+        "throughput_per_second": 6612475.852655145,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 6,
+        "median_fixture_setup_ns": 4131,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 1.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 72.0,
+        "peak_additional_requested_bytes": 72,
+        "round_mean_ns": {
+          "0": 168.3474,
+          "1": 148.23,
+          "2": 179.3516,
+          "3": 140.3282,
+          "4": 120.5426,
+          "5": 168.571,
+          "6": 133.2342
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 1.6817818025385343,
+      "lower_95": 1.3389256927919375,
+      "upper_95": 2.175823224955681,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 4,
+    "leaves": 16,
+    "nodes": 21,
+    "workload": "fresh",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 2340.7704285714285,
+        "p50_ns": 1544,
+        "p95_ns": 1658,
+        "p99_ns": 2509,
+        "throughput_per_second": 427209.7715324863,
+        "median_batch_thread_cpu_ns_per_operation": 2263.7214,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 7077,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 23.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 2008.0,
+        "peak_additional_requested_bytes": 2008,
+        "round_mean_ns": {
+          "0": 1708.9262,
+          "1": 5383.2218,
+          "2": 1792.7186,
+          "3": 1649.4524,
+          "4": 1856.3298,
+          "5": 2102.9458,
+          "6": 1891.7984
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 18479.02245714286,
+        "p50_ns": 14729,
+        "p95_ns": 17003,
+        "p99_ns": 94380,
+        "throughput_per_second": 54115.41667418999,
+        "median_batch_thread_cpu_ns_per_operation": 18397.8614,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 353514,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 54.0,
+        "reallocations_per_operation": 3.0,
+        "requested_bytes_per_operation": 80788.0,
+        "peak_additional_requested_bytes": 45844,
+        "round_mean_ns": {
+          "0": 18015.8098,
+          "1": 18232.9594,
+          "2": 17928.0164,
+          "3": 18926.6168,
+          "4": 18247.3186,
+          "5": 19163.9112,
+          "6": 18838.525
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 8.660699297322648,
+      "lower_95": 6.240759359523657,
+      "upper_95": 10.540326040402698,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 4,
+    "leaves": 16,
+    "nodes": 21,
+    "workload": "geometry-scan",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 70.17868571428572,
+        "p50_ns": 47,
+        "p95_ns": 63,
+        "p99_ns": 87,
+        "throughput_per_second": 14249340.662651338,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 6,
+        "median_fixture_setup_ns": 5804,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 0.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 0.0,
+        "peak_additional_requested_bytes": 0,
+        "round_mean_ns": {
+          "0": 104.3436,
+          "1": 56.6522,
+          "2": 47.2566,
+          "3": 133.2094,
+          "4": 50.835,
+          "5": 47.5902,
+          "6": 51.3638
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 50.73934285714286,
+        "p50_ns": 45,
+        "p95_ns": 63,
+        "p99_ns": 75,
+        "throughput_per_second": 19708572.158995245,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 7,
+        "median_fixture_setup_ns": 276139,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 0.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 0.0,
+        "peak_additional_requested_bytes": 0,
+        "round_mean_ns": {
+          "0": 59.0954,
+          "1": 57.347,
+          "2": 50.0478,
+          "3": 46.9856,
+          "4": 46.817,
+          "5": 46.886,
+          "6": 47.9966
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 0.7837012928362109,
+      "lower_95": 0.5783748082145537,
+      "upper_95": 0.9942404661223622,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 4,
+    "leaves": 16,
+    "nodes": 21,
+    "workload": "resize",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 1266.891542857143,
+        "p50_ns": 927,
+        "p95_ns": 962,
+        "p99_ns": 1506,
+        "throughput_per_second": 789333.5507984853,
+        "median_batch_thread_cpu_ns_per_operation": 1297.6022,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 7024,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 1.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 504.0,
+        "peak_additional_requested_bytes": 504,
+        "round_mean_ns": {
+          "0": 1651.4636,
+          "1": 1082.295,
+          "2": 1078.8664,
+          "3": 1105.3262,
+          "4": 1448.9428,
+          "5": 1437.4862,
+          "6": 1063.8606
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 7891.826285714285,
+        "p50_ns": 6203,
+        "p95_ns": 6364,
+        "p99_ns": 53899,
+        "throughput_per_second": 126713.38214960347,
+        "median_batch_thread_cpu_ns_per_operation": 7997.0838,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 305206,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 19.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 5208.0,
+        "peak_additional_requested_bytes": 2000,
+        "round_mean_ns": {
+          "0": 7277.8016,
+          "1": 7710.2664,
+          "2": 7187.8378,
+          "3": 8611.083,
+          "4": 8728.0842,
+          "5": 8035.0456,
+          "6": 7692.6654
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 6.306455429060982,
+      "lower_95": 5.433481193669739,
+      "upper_95": 7.112372433656552,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 4,
+    "leaves": 16,
+    "nodes": 21,
+    "workload": "retained",
+    "backends": {
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 1296.4988,
+        "p50_ns": 1083,
+        "p95_ns": 1126,
+        "p99_ns": 1456,
+        "throughput_per_second": 771308.0798840693,
+        "median_batch_thread_cpu_ns_per_operation": 1370.9584,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 328879,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 5.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 160.0,
+        "peak_additional_requested_bytes": 32,
+        "round_mean_ns": {
+          "0": 1198.2524,
+          "1": 1578.996,
+          "2": 1303.947,
+          "3": 1194.6642,
+          "4": 1144.656,
+          "5": 1326.6086,
+          "6": 1328.3674
+        }
+      },
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 1186.153142857143,
+        "p50_ns": 925,
+        "p95_ns": 949,
+        "p99_ns": 1489,
+        "throughput_per_second": 843061.4596621587,
+        "median_batch_thread_cpu_ns_per_operation": 802.409,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 6452,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 1.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 504.0,
+        "peak_additional_requested_bytes": 504,
+        "round_mean_ns": {
+          "0": 1306.9116,
+          "1": 1105.9956,
+          "2": 1159.6362,
+          "3": 1148.7834,
+          "4": 1085.284,
+          "5": 1524.4838,
+          "6": 971.9774
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 1.0976651835017515,
+      "lower_95": 0.9696069435435574,
+      "upper_95": 1.2508751709849282,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 8,
+    "leaves": 64,
+    "nodes": 73,
+    "workload": "fresh",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 6606.9156,
+        "p50_ns": 5623,
+        "p95_ns": 5746,
+        "p99_ns": 30073,
+        "throughput_per_second": 151356.55736240977,
+        "median_batch_thread_cpu_ns_per_operation": 7099.4164,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 14291,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 75.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 7032.0,
+        "peak_additional_requested_bytes": 7032,
+        "round_mean_ns": {
+          "0": 6100.2724,
+          "1": 6306.655,
+          "2": 7529.137,
+          "3": 6438.7146,
+          "4": 6961.5284,
+          "5": 6166.751,
+          "6": 6745.3508
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 87985.90794285714,
+        "p50_ns": 62344,
+        "p95_ns": 147592,
+        "p99_ns": 373978,
+        "throughput_per_second": 11365.456393874512,
+        "median_batch_thread_cpu_ns_per_operation": 83191.8192,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 416068,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 5,
+        "allocations_per_operation": 94.0,
+        "reallocations_per_operation": 50.0,
+        "requested_bytes_per_operation": 405428.0,
+        "peak_additional_requested_bytes": 178964,
+        "round_mean_ns": {
+          "0": 74169.0322,
+          "1": 83699.4864,
+          "2": 95153.9444,
+          "3": 114372.0252,
+          "4": 74671.5608,
+          "5": 95395.848,
+          "6": 78439.4586
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 13.201891316492611,
+      "lower_95": 11.797431245464491,
+      "upper_95": 15.003555673364778,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 8,
+    "leaves": 64,
+    "nodes": 73,
+    "workload": "geometry-scan",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 156.90985714285713,
+        "p50_ns": 99,
+        "p95_ns": 159,
+        "p99_ns": 201,
+        "throughput_per_second": 6373085.911929416,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 5,
+        "median_fixture_setup_ns": 12687,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 0.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 0.0,
+        "peak_additional_requested_bytes": 0,
+        "round_mean_ns": {
+          "0": 159.0476,
+          "1": 337.724,
+          "2": 96.9384,
+          "3": 153.1304,
+          "4": 119.094,
+          "5": 134.995,
+          "6": 97.4396
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 114.15394285714285,
+        "p50_ns": 92,
+        "p95_ns": 145,
+        "p99_ns": 173,
+        "throughput_per_second": 8760100.395756308,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 7,
+        "median_fixture_setup_ns": 508020,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 0.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 0.0,
+        "peak_additional_requested_bytes": 0,
+        "round_mean_ns": {
+          "0": 94.9728,
+          "1": 96.926,
+          "2": 115.4822,
+          "3": 92.6276,
+          "4": 143.5658,
+          "5": 158.1854,
+          "6": 97.3178
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 0.7790904846837966,
+      "lower_95": 0.525140656674761,
+      "upper_95": 1.0797534103413817,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 8,
+    "leaves": 64,
+    "nodes": 73,
+    "workload": "resize",
+    "backends": {
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 25005.855085714287,
+        "p50_ns": 20459,
+        "p95_ns": 37466,
+        "p99_ns": 126145,
+        "throughput_per_second": 39990.634056393246,
+        "median_batch_thread_cpu_ns_per_operation": 24850.2992,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 601920,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 3,
+        "allocations_per_operation": 35.0,
+        "reallocations_per_operation": 17.0,
+        "requested_bytes_per_operation": 27480.0,
+        "peak_additional_requested_bytes": 3952,
+        "round_mean_ns": {
+          "0": 23428.529,
+          "1": 24592.8882,
+          "2": 26344.3094,
+          "3": 25413.7316,
+          "4": 24607.8404,
+          "5": 26174.0862,
+          "6": 24479.6008
+        }
+      },
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 4387.927971428571,
+        "p50_ns": 3734,
+        "p95_ns": 3765,
+        "p99_ns": 8045,
+        "throughput_per_second": 227897.99798706165,
+        "median_batch_thread_cpu_ns_per_operation": 3996.6432,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 14791,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 1.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 1752.0,
+        "peak_additional_requested_bytes": 1752,
+        "round_mean_ns": {
+          "0": 4870.3026,
+          "1": 4257.1314,
+          "2": 4065.4856,
+          "3": 4057.204,
+          "4": 4432.6726,
+          "5": 4351.48,
+          "6": 4681.2196
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 5.706118003152234,
+      "lower_95": 5.3007310797740015,
+      "upper_95": 6.109755532464982,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 8,
+    "leaves": 64,
+    "nodes": 73,
+    "workload": "retained",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 5463.878342857143,
+        "p50_ns": 3743,
+        "p95_ns": 3791,
+        "p99_ns": 29485,
+        "throughput_per_second": 183020.1804012139,
+        "median_batch_thread_cpu_ns_per_operation": 4754.5514,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 14065,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 1.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 1752.0,
+        "peak_additional_requested_bytes": 1752,
+        "round_mean_ns": {
+          "0": 5058.2142,
+          "1": 4518.5964,
+          "2": 10122.5866,
+          "3": 4766.084,
+          "4": 4506.1546,
+          "5": 4504.3024,
+          "6": 4771.2102
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 4149.023457142857,
+        "p50_ns": 3285,
+        "p95_ns": 3391,
+        "p99_ns": 23071,
+        "throughput_per_second": 241020.57034129908,
+        "median_batch_thread_cpu_ns_per_operation": 4000.2716,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 474021,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 9.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 576.0,
+        "peak_additional_requested_bytes": 64,
+        "round_mean_ns": {
+          "0": 3829.9832,
+          "1": 3472.6382,
+          "2": 4208.9552,
+          "3": 3966.7822,
+          "4": 4713.3822,
+          "5": 3871.8516,
+          "6": 4979.5716
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 0.7881847693926745,
+      "lower_95": 0.6238957234923599,
+      "upper_95": 0.9440376234381006,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 15,
+    "leaves": 225,
+    "nodes": 241,
+    "workload": "fresh",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 26007.379171428573,
+        "p50_ns": 19341,
+        "p95_ns": 34223,
+        "p99_ns": 109283,
+        "throughput_per_second": 38450.62562469152,
+        "median_batch_thread_cpu_ns_per_operation": 23188.2874,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 32737,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 243.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 23293.0,
+        "peak_additional_requested_bytes": 23293,
+        "round_mean_ns": {
+          "0": 24413.4802,
+          "1": 22749.802,
+          "2": 22080.6382,
+          "3": 22634.9498,
+          "4": 22783.5566,
+          "5": 24537.233,
+          "6": 42851.9944
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 213169.9770857143,
+        "p50_ns": 170802,
+        "p95_ns": 349867,
+        "p99_ns": 758105,
+        "throughput_per_second": 4691.09212127891,
+        "median_batch_thread_cpu_ns_per_operation": 206786.279,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 914108,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 21,
+        "allocations_per_operation": 161.0,
+        "reallocations_per_operation": 164.0,
+        "requested_bytes_per_operation": 1022700.0,
+        "peak_additional_requested_bytes": 372252,
+        "round_mean_ns": {
+          "0": 225308.0284,
+          "1": 216488.8084,
+          "2": 207677.984,
+          "3": 198174.7488,
+          "4": 208435.9194,
+          "5": 237314.4544,
+          "6": 198789.8962
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 8.407105093711126,
+      "lower_95": 6.874070103501398,
+      "upper_95": 9.443576664261776,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 15,
+    "leaves": 225,
+    "nodes": 241,
+    "workload": "geometry-scan",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 294.6664857142857,
+        "p50_ns": 238,
+        "p95_ns": 353,
+        "p99_ns": 413,
+        "throughput_per_second": 3393667.242394234,
+        "median_batch_thread_cpu_ns_per_operation": 412.6662,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 3,
+        "median_fixture_setup_ns": 34214,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 0.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 0.0,
+        "peak_additional_requested_bytes": 0,
+        "round_mean_ns": {
+          "0": 228.2394,
+          "1": 245.3646,
+          "2": 415.4106,
+          "3": 347.6542,
+          "4": 240.4614,
+          "5": 287.1674,
+          "6": 298.3678
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 258.89557142857143,
+        "p50_ns": 216,
+        "p95_ns": 348,
+        "p99_ns": 379,
+        "throughput_per_second": 3862561.2422879827,
+        "median_batch_thread_cpu_ns_per_operation": 0.0,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 5,
+        "median_fixture_setup_ns": 930655,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 0,
+        "allocations_per_operation": 0.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 0.0,
+        "peak_additional_requested_bytes": 0,
+        "round_mean_ns": {
+          "0": 210.5674,
+          "1": 265.3766,
+          "2": 334.6142,
+          "3": 257.6704,
+          "4": 232.8436,
+          "5": 266.5752,
+          "6": 244.6216
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 0.8890494649273849,
+      "lower_95": 0.8136727443379647,
+      "upper_95": 0.9730053302818122,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 15,
+    "leaves": 225,
+    "nodes": 241,
+    "workload": "resize",
+    "backends": {
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 81155.0938,
+        "p50_ns": 62770,
+        "p95_ns": 146007,
+        "p99_ns": 340020,
+        "throughput_per_second": 12322.085443760525,
+        "median_batch_thread_cpu_ns_per_operation": 79247.0124,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 1208569,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 3,
+        "allocations_per_operation": 63.0,
+        "reallocations_per_operation": 62.0,
+        "requested_bytes_per_operation": 113184.0,
+        "peak_additional_requested_bytes": 7856,
+        "round_mean_ns": {
+          "0": 79458.654,
+          "1": 92082.568,
+          "2": 79554.728,
+          "3": 78751.2282,
+          "4": 77126.5886,
+          "5": 80114.9432,
+          "6": 80996.9466
+        }
+      },
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 16348.9838,
+        "p50_ns": 13076,
+        "p95_ns": 13846,
+        "p99_ns": 85094,
+        "throughput_per_second": 61165.88114791575,
+        "median_batch_thread_cpu_ns_per_operation": 16798.3602,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 36290,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 2,
+        "allocations_per_operation": 1.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 5784.0,
+        "peak_additional_requested_bytes": 5784,
+        "round_mean_ns": {
+          "0": 16887.2496,
+          "1": 16206.387,
+          "2": 15234.6568,
+          "3": 15531.5854,
+          "4": 17597.585,
+          "5": 18263.7988,
+          "6": 14721.624
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 4.969738492008275,
+      "lower_95": 4.635172565587386,
+      "upper_95": 5.335047647467308,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  },
+  {
+    "side": 15,
+    "leaves": 225,
+    "nodes": 241,
+    "workload": "retained",
+    "backends": {
+      "zgpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 16436.653085714286,
+        "p50_ns": 13088,
+        "p95_ns": 15907,
+        "p99_ns": 91008,
+        "throughput_per_second": 60839.63656014238,
+        "median_batch_thread_cpu_ns_per_operation": 15999.2764,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 31626,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 2,
+        "allocations_per_operation": 1.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 5784.0,
+        "peak_additional_requested_bytes": 5784,
+        "round_mean_ns": {
+          "0": 15630.1656,
+          "1": 17222.3218,
+          "2": 18627.2236,
+          "3": 15939.171,
+          "4": 16007.6052,
+          "5": 16386.3612,
+          "6": 15243.7232
+        }
+      },
+      "gpui": {
+        "sample_count": 35000,
+        "round_count": 7,
+        "mean_ns": 13223.9416,
+        "p50_ns": 10866,
+        "p95_ns": 11637,
+        "p99_ns": 73129,
+        "throughput_per_second": 75620.4186503667,
+        "median_batch_thread_cpu_ns_per_operation": 13593.4598,
+        "batch_thread_cpu_available_rounds": 7,
+        "batch_thread_cpu_zero_delta_rounds": 0,
+        "median_fixture_setup_ns": 664035,
+        "median_peak_process_rss_kib": 67304,
+        "median_involuntary_context_switches": 1,
+        "allocations_per_operation": 16.0,
+        "reallocations_per_operation": 0.0,
+        "requested_bytes_per_operation": 1920.0,
+        "peak_additional_requested_bytes": 120,
+        "round_mean_ns": {
+          "0": 13374.1276,
+          "1": 12564.0984,
+          "2": 13681.603,
+          "3": 12888.7498,
+          "4": 14398.6128,
+          "5": 12578.7876,
+          "6": 13081.612
+        }
+      }
+    },
+    "gpui_over_zgpui_time": {
+      "point": 0.8053244494034293,
+      "lower_95": 0.7601126205329456,
+      "upper_95": 0.854484168120563,
+      "method": "paired-round geometric mean ratio; bootstrap rounds, 5000 draws"
+    }
+  }
+]

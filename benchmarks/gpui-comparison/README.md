@@ -5,16 +5,19 @@ It verifies every output rectangle against an independent integer geometry oracl
 before recording any sample. It does **not** establish that the two libraries
 provide equivalent desktop frameworks.
 
-**Checkpoint status:** source `499b78324879cea97f8dfe9ea9f44111b938770d`
-passed the cloud CPU release build and the unchanged independent geometry gate:
-20 configurations and 40,960 deterministic pointer-query iterations. The
-[source-bound receipt](resource-gates/20261120T032341Z/build-and-geometry.json)
-records the executable, source, lockfile and resource-monitor hashes. The earlier
-native build remains paused. A separate allocation executable also passed the
-same geometry gate, while the timing executable remained byte-identical; its
-[build receipt](resource-gates/20261120T033220Z/allocation-build-and-geometry.json)
-records both hashes. No performance or allocation sample has been collected,
-and there are no measured winner or frame-time claims.
+**Checkpoint status:** the [first measured cloud CPU baseline](reports/20261120-cloud-cpu/README.md)
+is complete: seven paired rounds, 1,120,000 timing samples and a separate
+allocation probe, with no samples removed. zgpui had lower paired mean times for
+fresh layout and resize; GPUI was faster on larger retained layouts and some
+geometry scans. This does not establish an overall framework or GPU win. The
+report preserves zero CPU-counter deltas, round-dependent process RSS and the
+observed cloud CPU steal interval as measurement limits.
+
+Both executables passed the unchanged independent geometry gate: 20
+configurations and 40,960 deterministic pointer-query iterations each. The
+[timing build receipt](resource-gates/20261120T032341Z/build-and-geometry.json)
+and [separate allocation build receipt](resource-gates/20261120T033220Z/allocation-build-and-geometry.json)
+record fixed inputs and binary hashes. The native build remains paused.
 
 The gate first exposed two fixture input mismatches. An auto-width GPUI root
 produced a zero-width leaf; after declaring 100% root width, the test window's

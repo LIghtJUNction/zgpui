@@ -1,0 +1,185 @@
+{
+  "schema": 1,
+  "status": "cpu_baseline_measured",
+  "environment": "Managed cloud Linux x86_64; not the user development desktop; no GPU run",
+  "measurement_source": "56d62e47b939f6e3ba355c7868aea7909e53942b",
+  "functional_fixture_source": "499b78324879cea97f8dfe9ea9f44111b938770d",
+  "zgpui_baseline": "1d796d1fc63808dc099ed7b10c92e75835ae2814",
+  "gpui_upstream": "a246423a3b24a08e0d0c8574eab3a9de422747e0",
+  "gpui_version": "0.2.2",
+  "zgpui_version": "0.1.0",
+  "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)\nbinary: rustc\ncommit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a\ncommit-date: 2026-11-09\nhost: x86_64-unknown-linux-gnu\nrelease: 1.100.0\nLLVM version: 23.1.5",
+  "release_profile": {
+    "opt-level": 3,
+    "lto": "thin",
+    "codegen-units": 1
+  },
+  "lock_sha256": "23dcd455e3326f9836ea9da927d3014376db6656e56228f55e6421b5ae7ff490",
+  "timing_binary_sha256": "2c17d7c272833c7db68acb5ccf7cd687b55ca247b2fe81d95cca0ff4fc52cf95",
+  "allocation_binary_sha256": "a54e314542e08050d4344666f3a02c3ae1a0ab5f9b762f2a24a323bdf9650f83",
+  "cpu": 0,
+  "observed_allowed_cpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "cpu_selection": "smallest permitted CPU, selected before samples",
+  "nice": 19,
+  "seed": 20261120,
+  "paired_rounds": 7,
+  "warmups_per_process": 256,
+  "timing_invocations": 224,
+  "timing_samples": 1120000,
+  "allocation_invocations": 32,
+  "allocation_samples": 32768,
+  "raw_file_count": 519,
+  "raw_total_bytes": 21774741,
+  "raw_aggregate_equality_verified": true,
+  "all_original_raw_hashes_unchanged": true,
+  "sample_removal": 0,
+  "adaptive_resampling": false,
+  "instrumented_geometry_and_timing_geometry_passed": true,
+  "geometry_configurations_per_binary": 20,
+  "pointer_query_iterations_per_binary": 40960,
+  "kernel_cgroup_claimed": false,
+  "resource_guard": {
+    "kind": "userspace polling",
+    "rss_limit_bytes": 4294967296,
+    "host_floor_bytes": 3221225472,
+    "sampled_peak_process_group_rss_bytes": 106606592,
+    "minimum_host_mem_available_bytes": 9221173248
+  },
+  "started_at_utc": "2026-11-20T03:35:50.421627+00:00",
+  "finished_at_utc": "2026-11-20T03:36:16.559134+00:00",
+  "allocation_counter_source_sha256": "e2db642aa61459a081d41a75bb6ff601a823d30c4e7469929d12626c44198312",
+  "measured_harness_files_sha256": {
+    "build.py": "62ce606886f63192ef9be0c20fb0d97260d4a970d367f53645a4a9b5e7acd6c9",
+    "prepare.py": "48df82027c6d0bd209b2292cc18f5eea2f8af3165d3e20365b2e9728313dcda6",
+    "report.py": "4ec4962a0a5a161a0213c0d41aed9b1310fa26ae29009a2b5957146e82e070ec",
+    "run.py": "9b68bb624a96d6e5071c3cd8933294caab206be2bd7fb0d67417a07480fba9ba",
+    "test_reporting.py": "39fa4a735cb4bc8ab33ec5e554539a134ff7cf73889233a85ab0b448e31bc06f",
+    "Cargo.toml": "51118132e380bfbd5bfff9794f29a79369ffcceae642df6fe6f3bcee30470a55",
+    "src/allocations.rs": "e2db642aa61459a081d41a75bb6ff601a823d30c4e7469929d12626c44198312",
+    "src/main.rs": "97aee49c89a5d79c09e2358986fafc9b8dc54fd94ae9a765b14d6a2429ec96ed"
+  },
+  "analysis_reporter_sha256": "8adff4f1d77c235470d715c347e0d0fe02e6d3afbbfbcc0e2c89a9de39ed9d41",
+  "analysis_change": "Only reports counter-resolution/round RSS diagnostics; every previous latency, throughput, allocation, and paired-interval value remains exactly unchanged. No recompilation or resampling.",
+  "archive": {
+    "bytes": 3570914,
+    "sha256": "400abff1703dd370a8479af47a4a696fe1c797437a5ac9fe38575c9849b2db53",
+    "git_blob_sha1": "b910ac7c4768e6c091d46b33b8aaa7bebed5a26b",
+    "members": 534,
+    "original_raw_files": 519
+  },
+  "archive_file": "zgpui-gpui-cpu-raw-20261120.tar.gz",
+  "receipt_sha256": {
+    "plan.json": "139a6978cc23737df6aa3b81223a30918ddfd3912e3b3345aac4a5fbc16380bf",
+    "admission.json": "e9cde9918e83026d9299fb7acf2137e88636ab41c252742d257b12fa28af4ab8",
+    "quiet-window-ack.json": "256752e36071cb35a0dcd00dfdcc7e14c034df0196920142566a8d814308a309",
+    "measurement.json": "02ac95b2b8d4a1a5d7bd5545bac530fdb60e3bae5bbe7dec724367df6fd00d95",
+    "result.json": "534c941450153c5372edbd34d9ffe779a3adcbe1bb72e523af3d18e6934e1e06",
+    "controller.json": "5455d08cadd51e19ce9acb308c3bfe254d2a9f16e9daf3bae8bd388cf29aafd3",
+    "raw-inventory.json": "c3bb0045b029ede65dfbffdafd1e060d7ff8ecf1d6f6207f501636ec63169f42"
+  },
+  "coverage": {
+    "fixed_metric_layout": "measured",
+    "typed_tree_construction": "included in fresh",
+    "geometry_lookup": "measured using explicit GPUI Bounds host adapter",
+    "allocation_calls_and_requested_bytes": "measured in separate executable",
+    "batch_cpu_time": "retained; 69/224 zero deltas limit short batches",
+    "exclusive_library_rss": "not established; process/fork/collector effects not isolated",
+    "native_application_startup": "not measured",
+    "full_platform_event_dispatch": "not measured",
+    "GPU_frames_text_shaping_pixels": "not measured",
+    "other_native_platforms": "not measured"
+  },
+  "quality": {
+    "timing_invocations": 224,
+    "batch_cpu_unavailable_invocations": 0,
+    "batch_cpu_zero_delta_invocations": 69,
+    "rss_minimum_kib": 11904,
+    "rss_maximum_kib": 124296,
+    "rss_by_round": [
+      {
+        "round": 0,
+        "minimum_kib": 11904,
+        "median_kib": 13676.0,
+        "maximum_kib": 16364
+      },
+      {
+        "round": 1,
+        "minimum_kib": 30444,
+        "median_kib": 30444.0,
+        "maximum_kib": 30444
+      },
+      {
+        "round": 2,
+        "minimum_kib": 48788,
+        "median_kib": 48788.0,
+        "maximum_kib": 48788
+      },
+      {
+        "round": 3,
+        "minimum_kib": 67304,
+        "median_kib": 67304.0,
+        "maximum_kib": 67304
+      },
+      {
+        "round": 4,
+        "minimum_kib": 85760,
+        "median_kib": 85760.0,
+        "maximum_kib": 85760
+      },
+      {
+        "round": 5,
+        "minimum_kib": 104208,
+        "median_kib": 104208.0,
+        "maximum_kib": 104208
+      },
+      {
+        "round": 6,
+        "minimum_kib": 124296,
+        "median_kib": 124296.0,
+        "maximum_kib": 124296
+      }
+    ],
+    "selected_cpu_stat": {
+      "cpu": "cpu0",
+      "fields": [
+        "user",
+        "nice",
+        "system",
+        "idle",
+        "iowait",
+        "irq",
+        "softirq",
+        "steal"
+      ],
+      "deltas_ticks": [
+        1,
+        1746,
+        115,
+        311,
+        0,
+        0,
+        0,
+        348
+      ],
+      "total_ticks": 2521,
+      "steal_fraction": 0.13804046013486712,
+      "scope": "Whole selected-CPU observation interval; not per-operation CPU time."
+    },
+    "reporter_sha256": "8adff4f1d77c235470d715c347e0d0fe02e6d3afbbfbcc0e2c89a9de39ed9d41",
+    "limitations": [
+      "A zero scheduler-counter delta does not establish zero CPU cost; all zero values are retained.",
+      "Child peak RSS includes process startup and fixture context; it does not isolate library-owned memory.",
+      "Paired intervals describe this run, not a noise-free machine or another platform."
+    ]
+  }
+}
