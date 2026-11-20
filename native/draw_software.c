@@ -1,8 +1,10 @@
 /* CPU rasterizer: one client-owned framebuffer, no GL or worker process. */
+#define _DEFAULT_SOURCE 1
 #include "zgpui.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #define CACHE_COUNT 96
 #define CACHE_BYTES (2u * 1024u * 1024u)
@@ -18,6 +20,8 @@ static Text cache[CACHE_COUNT];
 static unsigned long clock_tick;
 static size_t text_bytes;
 static uint32_t *pixels;
+static size_t pixel_bytes;
+static int frame_ready;
 static int screen_width, screen_height;
 static int clip_left, clip_top, clip_right, clip_bottom;
 
@@ -26,16 +30,27 @@ int zgpui_software_resize(int width, int height) {
         (size_t)width > SURFACE_BYTES / sizeof(uint32_t) / (size_t)height)
         return 0;
     if (width == screen_width && height == screen_height && pixels) return 1;
-    uint32_t *next = realloc(pixels, (size_t)width * (size_t)height * sizeof(*pixels));
-    if (!next) return 0;
-    pixels = next;
+    size_t bytes = (size_t)width * (size_t)height * sizeof(*pixels);
+    uint32_t *next = mmap(NULL, bytes, PROT_READ | PROT_WRITE,
+                          MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (next == MAP_FAILED) return 0;
+    /* Allocate first: a failed resize leaves the old frame and size intact. */
+    if (pixels) munmap(pixels, pixel_bytes);
+    pixels = next; pixel_bytes = bytes; frame_ready = 0;
     screen_width = width; screen_height = height;
     zgpui_unclip();
     return 1;
 }
 uint32_t *zgpui_software_pixels(int *width, int *height) {
     *width = screen_width; *height = screen_height;
-    return pixels;
+    return frame_ready ? pixels : NULL;
+}
+void zgpui_software_release(void) {
+    if (!pixels || !frame_ready) return;
+    /* No draw or repeated present may use discarded contents before begin. */
+    frame_ready = 0;
+    /* Best effort; failure only retains RSS. The next begin still clears all. */
+    (void)madvise(pixels, pixel_bytes, MADV_DONTNEED);
 }
 static float clamp(float value, float low, float high) {
     return value < low ? low : value > high ? high : value;
@@ -53,7 +68,7 @@ static void blend(int x, int y, uint32_t value, unsigned int coverage) {
 }
 /* Clamp before integer conversion, including hostile/out-of-window geometry. */
 static int bounds(float x0, float y0, float x1, float y1, int out[4]) {
-    if (!pixels || !isfinite(x0) || !isfinite(y0) || !isfinite(x1) || !isfinite(y1) ||
+    if (!frame_ready || !pixels || !isfinite(x0) || !isfinite(y0) || !isfinite(x1) || !isfinite(y1) ||
         x1 <= x0 || y1 <= y0 || clip_right <= clip_left || clip_bottom <= clip_top)
         return 0;
     out[0] = (int)floorf(clamp(x0, (float)clip_left, (float)clip_right));
@@ -63,10 +78,12 @@ static int bounds(float x0, float y0, float x1, float y1, int out[4]) {
     return out[2] > out[0] && out[3] > out[1];
 }
 void zgpui_begin(int width, int height, uint32_t background) {
+    frame_ready = 0;
     if (!zgpui_software_resize(width, height)) return;
     zgpui_unclip();
     size_t count = (size_t)width * (size_t)height;
     for (size_t i = 0; i < count; ++i) pixels[i] = background >> 8;
+    frame_ready = 1;
 }
 void zgpui_rect(float x, float y, float width, float height, float radius, uint32_t color) {
     int b[4];
@@ -208,7 +225,8 @@ void zgpui_unclip(void) {
 }
 void zgpui_gpu_destroy(void) {
     for (int i = 0; i < CACHE_COUNT; ++i) drop(&cache[i]);
-    free(pixels); pixels = NULL;
+    if (pixels) munmap(pixels, pixel_bytes);
+    pixels = NULL; pixel_bytes = 0; frame_ready = 0;
     screen_width = screen_height = 0;
     clip_left = clip_top = clip_right = clip_bottom = 0;
     clock_tick = 0;

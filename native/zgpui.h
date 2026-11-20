@@ -25,6 +25,9 @@ void zgpui_gpu_destroy(void);
 const char *zgpui_gpu_info(void);
 #ifdef ZGPUI_SOFTWARE
 int zgpui_software_resize(int width,int height);
+/* NULL until begin succeeds, and after release or a successful size change. */
 uint32_t *zgpui_software_pixels(int *width,int *height);
+/* Call only after the presenter has copied the pixels. Next begin clears all. */
+void zgpui_software_release(void);
 #endif
 #endif

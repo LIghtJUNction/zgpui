@@ -29,7 +29,7 @@ Replace the old dependency key, package selection and vendor gitlink together:
 
 ```toml
 [dependencies]
-zgpui = { path = "vendor/zgpui", version = "=0.1.1", default-features = false, features = ["native"] }
+zgpui = { path = "vendor/zgpui", version = "=0.1.2", default-features = false, features = ["native"] }
 ```
 
 Use the `linux-software` feature for a Linux application that explicitly chooses
@@ -76,6 +76,37 @@ mask cache. X11 server storage, fonts and the process runtime consume additional
 memory. This does not establish a whole-application memory limit. The renderer
 requires a compatible RGB X11 visual and bounds its framebuffer allocation.
 
+Linux releases temporary Fontconfig matching state after opening the required
+FreeType faces. Matching retains system and user aliases and default-language
+settings. Fonts added only to a host's in-memory Fontconfig configuration are
+not inherited by the private matching configuration.
+
+## CPU frame lifetime
+
+The Linux CPU backend keeps its framebuffer in a dedicated private anonymous
+mapping. After ordinary XPutImage copies the frame and XFlush drains the Xlib
+output, it releases the mapping's resident pages with MADV_DONTNEED. The virtual
+address remains reserved. This path does not use XShm, a server-side renderer or
+an additional process. See the [Xlib image-transfer contract](https://www.x.org/releases/X11R7.6/doc/libX11/specs/libX11/libX11.html)
+and [Linux discard semantics](https://man7.org/linux/man-pages/man2/madvise.2.html).
+
+A successful Window::begin clears every pixel before drawing. CPU present
+consumes that frame; another present before a new begin is a no-op. Redraw the
+complete frame after Event::Resize, which also represents an X11 Expose event.
+The text-mask cache survives presentation. Drawing cannot write discarded frame
+contents before the next successful begin.
+
+Resize allocates a replacement mapping before releasing the old one. An
+allocation failure preserves the previous storage and dimensions; a failed begin
+does not expose a stale frame for presentation. Failure to discard pages retains
+memory without changing rendering correctness. If XImage metadata allocation
+fails, presentation retains the prepared frame for a later attempt.
+
+Drawing still requires the full four-byte-per-pixel surface. At 1120x760 this is
+3,404,800 bytes, rounded to complete pages by the mapping. Report drawing peaks
+separately from idle residency; discarding this surface does not establish a
+whole-application memory limit.
+
 ## Checks
 
 ```sh
@@ -85,14 +116,25 @@ cargo test --locked --lib --features linux-software
 cargo clippy --locked --all-targets --features native -- -D warnings
 cargo clippy --locked --all-targets --features linux-software -- -D warnings
 python3 scripts/test_software.py
+python3 scripts/test_fonts.py -v
 cargo build --release --locked --example window_probe --features linux-software
 xvfb-run -a -s "-screen 0 1280x900x24 -nolisten tcp" python3 scripts/check_x11.py
 ```
 
 Private X11 checks inspect the actual title, WM_CLASS, minimum size and client
 geometry. Software rasterizer tests exercise clipping, alpha blending, text
-cache lifecycle and resize failures under AddressSanitizer and UBSan. Native
-window checks under Xvfb do not measure hardware GPU performance.
+cache lifecycle, discarded-page residency and allocation failures under AddressSanitizer and UBSan. Font
+tests use installed Latin/CJK fonts to check locale matching, face reuse,
+raster stability across sizes and configuration ownership under the same
+sanitizers. Linux window checks also present multilingual regular and bold
+text, reject an empty frame, preserve a PNG and require a clean exit.
+
+The font checks require scalable Latin and CJK fonts, such as Liberation Sans
+and Noto Sans CJK. The Linux window checks require Xvfb, xauth, xdotool,
+x11-utils and ImageMagick in addition to the native development libraries.
+These are validation requirements, separate from application runtime libraries.
+Native window checks under Xvfb do not measure hardware GPU performance or
+establish a whole-application memory limit.
 
 The frozen native import and original file hashes are recorded in
 [native-import.json](native-import.json). Historical source names in that
@@ -106,3 +148,13 @@ adds native-window and packaged-source checks. Release jobs use those options.
 source, core and native checks, four real X11 cases per backend, and CPU driver
 dependency inspection. It reports no hardware benchmark or whole-application
 memory target.
+
+The Linux CPU release gate also compares real window pixels with the pre-discard
+implementation. Its source checkout must contain the frozen baseline commit. This test covers repeated presentation, resize/Expose redraw,
+allocation-failure rollback and an antialiased text/geometry scene under
+AddressSanitizer and UBSan:
+
+    xvfb-run -a -s "-screen 0 1600x1000x24 -nolisten tcp" \
+      python3 scripts/test_software_x11.py \
+      --baseline cb50f2fe554622fdc984ae7fec9bcd844f175d67 \
+      --output /var/tmp/zgpui-framebuffer-x11

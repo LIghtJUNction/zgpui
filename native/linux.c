@@ -7,6 +7,9 @@
 #include <GL/glx.h>
 #endif
 #include <fontconfig/fontconfig.h>
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <poll.h>
@@ -106,6 +109,9 @@ void zgpui_swap(ZgpuiWindow *w){
     XFlush(w->display);
     /* draw_software owns the single framebuffer; XDestroyImage owns only metadata. */
     image->data=NULL;XDestroyImage(image);
+    /* Ordinary XPutImage copies the bytes before returning (unlike XShm).
+       XFlush drains Xlib's copy; the server no longer needs our client pages. */
+    zgpui_software_release();
 #else
     glXSwapBuffers(w->display,w->window);
 #endif
@@ -153,17 +159,89 @@ static FT_Library library;
 static FT_Face faces[12];
 static char *paths[12];
 static int face_count;
+static unsigned int face_weights[12];
+static int face_indices[12];
 static FT_Face face_for(uint32_t cp,int size,int bold){
     if(!library&&FT_Init_FreeType(&library))return NULL;
-    FcPattern *pattern=FcPatternCreate();FcPatternAddString(pattern,FC_FAMILY,(const FcChar8*)"sans");
+    bold=!!bold;
+    /* Reuse an already opened face before asking fontconfig to enumerate the
+       installed fonts. A face owns its file independently of the match config. */
+    for(int i=0;i<face_count;i++){
+        if((face_weights[i]&(1u<<bold))&&FT_Get_Char_Index(faces[i],cp)){
+            FT_Set_Pixel_Sizes(faces[i],0,size);
+            return faces[i];
+        }
+    }
+    /* A private, short-lived config avoids pinning every system font cache in
+       an otherwise idle window, and does not mutate a host application's config. */
+    FcConfig *config=FcInitLoadConfigAndFonts();
+    if(!config)return NULL;
+    FcPattern *pattern=FcPatternCreate();
+    FcCharSet *charset=FcCharSetCreate();
+    if(!pattern||!charset){
+        if(pattern)FcPatternDestroy(pattern);
+        if(charset)FcCharSetDestroy(charset);
+        FcConfigDestroy(config);
+        return NULL;
+    }
+    FcPatternAddString(pattern,FC_FAMILY,(const FcChar8*)"sans");
     FcPatternAddInteger(pattern,FC_WEIGHT,bold?FC_WEIGHT_BOLD:FC_WEIGHT_REGULAR);
-    FcCharSet *charset=FcCharSetCreate();FcCharSetAddChar(charset,cp);FcPatternAddCharSet(pattern,FC_CHARSET,charset);FcCharSetDestroy(charset);
-    FcConfigSubstitute(NULL,pattern,FcMatchPattern);FcDefaultSubstitute(pattern);FcResult result;FcPattern *match=FcFontMatch(NULL,pattern,&result);FcPatternDestroy(pattern);
-    if(!match)return NULL;FcChar8 *path=NULL;int index=0;FcPatternGetString(match,FC_FILE,0,&path);FcPatternGetInteger(match,FC_INDEX,0,&index);
+    FcCharSetAddChar(charset,cp);
+    FcPatternAddCharSet(pattern,FC_CHARSET,charset);
+    FcCharSetDestroy(charset);
+    /* Match the actual raster size. Configuration substitution keeps system and
+       user aliases, including FC_LANG/LC_ALL/LC_CTYPE/LANG preferences. */
+    FcPatternAddInteger(pattern,FC_SLANT,FC_SLANT_ROMAN);
+    FcPatternAddInteger(pattern,FC_WIDTH,FC_WIDTH_NORMAL);
+    FcPatternAddBool(pattern,FC_SCALABLE,FcTrue);
+    FcPatternAddDouble(pattern,FC_PIXEL_SIZE,(double)size);
+    FcConfigSubstitute(config,pattern,FcMatchPattern);
+#if FC_VERSION >= 21700
+    /* The legacy wrapper passes NULL and initializes a process-wide config in
+       Fontconfig 2.17+. Keep all default substitution on our private config. */
+    FcConfigSetDefaultSubstitute(config,pattern);
+#else
+    /* Before 2.17 defaults are independent of FcConfig; this preserves locale
+       and user matching semantics without requiring a newer system library. */
+    FcDefaultSubstitute(pattern);
+#endif
+    FcResult result;
+    FcPattern *match=FcFontMatch(config,pattern,&result);
+    FcPatternDestroy(pattern);
     FT_Face face=NULL;
-    if(path){for(int i=0;i<face_count;i++)if(strcmp(paths[i],(const char*)path)==0){face=faces[i];break;}
-        if(!face&&face_count<12&&!FT_New_Face(library,(const char*)path,index,&face)){paths[face_count]=strdup((const char*)path);faces[face_count++]=face;}}
-    FcPatternDestroy(match);if(face)FT_Set_Pixel_Sizes(face,0,size);return face;
+    if(match){
+        FcChar8 *path=NULL;
+        int index=0;
+        FcPatternGetString(match,FC_FILE,0,&path);
+        FcPatternGetInteger(match,FC_INDEX,0,&index);
+        if(path){
+            for(int i=0;i<face_count;i++){
+                if(face_indices[i]==index&&strcmp(paths[i],(const char*)path)==0){
+                    face_weights[i]|=1u<<bold;
+                    face=faces[i];break;
+                }
+            }
+            if(!face&&face_count<12&&!FT_New_Face(library,(const char*)path,index,&face)){
+                char *owned=strdup((const char*)path);
+                if(owned){
+                    paths[face_count]=owned;
+                    face_indices[face_count]=index;
+                    face_weights[face_count]=1u<<bold;
+                    faces[face_count++]=face;
+                }else{
+                    FT_Done_Face(face);face=NULL;
+                }
+            }
+        }
+        FcPatternDestroy(match);
+    }
+    FcConfigDestroy(config);
+#ifdef __GLIBC__
+    /* Return the now unused enumeration arena, after retaining only FT faces. */
+    malloc_trim(0);
+#endif
+    if(face)FT_Set_Pixel_Sizes(face,0,size);
+    return face;
 }
 static uint32_t codepoint(const unsigned char **p){
     uint32_t c=*(*p)++;if(c<0x80)return c;unsigned int count=c<0xe0?1:c<0xf0?2:3;c&=(1u<<(6-count))-1;
@@ -181,4 +259,4 @@ ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold){
         x+=(int)(g->advance.x>>6);
     }return out;
 }
-void zgpui_font_shutdown(void){for(int i=0;i<face_count;i++){FT_Done_Face(faces[i]);free(paths[i]);}face_count=0;if(library){FT_Done_FreeType(library);library=NULL;}FcFini();}
+void zgpui_font_shutdown(void){for(int i=0;i<face_count;i++){FT_Done_Face(faces[i]);free(paths[i]);}face_count=0;if(library){FT_Done_FreeType(library);library=NULL;}}

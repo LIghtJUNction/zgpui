@@ -1,6 +1,6 @@
 [package]
 name = "zgpui"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.100"
 license = "MIT"
@@ -10,7 +10,7 @@ description = "Bounded no_std UI scenes with optional native GPU and CPU windows
 readme = "README.md"
 keywords = ["gui", "ui", "no-std", "layout", "project-z"]
 categories = ["gui", "no-std"]
-include = ["/src/**", "/native/**", "/build.rs", "/examples/**", "/benches/**", "/README.md", "/docs/**", "/LICENSE", "/Cargo.toml", "/scripts/check_x11.py", "/scripts/test_software.py", "/scripts/check_native.py"]
+include = ["/src/**", "/native/**", "/build.rs", "/examples/**", "/benches/**", "/README.md", "/docs/**", "/LICENSE", "/Cargo.toml", "/scripts/check_x11.py", "/scripts/test_software.py", "/scripts/test_software_x11.py", "/scripts/test_fonts.py", "/scripts/check_native.py"]
 
 [features]
 default = []

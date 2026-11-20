@@ -78,6 +78,8 @@ def main():
     run("cargo", "test", *common, "--doc")
     run("cargo", "build", *common, "--release", "--examples")
     software = sys.platform == "linux" and args.features == "linux-software"
+    if sys.platform == "linux":
+        run(sys.executable, "scripts/test_fonts.py", "-v")
     if software:
         run(sys.executable, "scripts/test_software.py", "-v")
     if args.package:
@@ -103,7 +105,27 @@ def main():
                 *(["--expect-software"] if software else []),
                 extra_env={"LIBGL_ALWAYS_SOFTWARE": "1"},
             )
-            window_scope = "private X11 geometry, title, minimum-size and mapped-library checks"
+            run(
+                "xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp",
+                sys.executable, "scripts/test_fonts.py", "--window",
+                "--features", args.features,
+                "--output", str(output / (args.features + "-fonts.json")),
+                extra_env={"LIBGL_ALWAYS_SOFTWARE": "1"},
+            )
+            window_scope = (
+                "private X11 geometry, title, minimum-size and mapped-library checks; "
+                "real font presentation with a nonempty screenshot and clean exit"
+            )
+            if software:
+                run(
+                    "xvfb-run", "-a", "-s", "-screen 0 1600x1000x24 -nolisten tcp",
+                    sys.executable, "scripts/test_software_x11.py",
+                    "--output", str(output / "linux-software-pixels"),
+                )
+                window_scope += (
+                    "; CPU baseline pixel equality, resize/Expose, repeated presentation "
+                    "and allocation-failure rollback under ASan/UBSan"
+                )
         else:
             run(str(binary), "zgpui-release-probe", "660", "264", capture=True)
             window_scope = "bounded native window, context and present smoke"

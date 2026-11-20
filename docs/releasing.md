@@ -19,16 +19,18 @@ Open **Actions → Release zgpui → Run workflow** and select `main`.
 
 | Input | Use |
 | --- | --- |
-| `bump = none` | Publish the version already in Cargo.toml, including the initial 0.1.0 |
+| `bump = none` | Publish the version already in Cargo.toml |
 | `bump = patch / minor / major` | Create and push a version candidate |
-| `candidate` | Leave empty for a new run |
+| `candidate` | Full SHA of an already committed candidate, or empty when the workflow prepares the version |
 
 The workflow then:
 
 1. Records the candidate commit and version.
 2. Runs core and native Linux, macOS and Windows tests against that exact SHA.
    Linux native jobs exercise OpenGL and CPU rendering separately, including
-   real private-window checks and CPU sanitizer coverage.
+   real private-window checks, CPU sanitizer coverage and installed-font
+   regressions under AddressSanitizer/UBSan. Both Linux backends capture a
+   multilingual font window and reject an empty frame.
 3. Checks WebAssembly, bare-metal compilation, formatting, Clippy,
    zero dependencies and the packaged crate from that same SHA. Native builds
    also compile the packaged crate with their feature enabled, preventing a
@@ -36,13 +38,39 @@ The workflow then:
 4. Tags the validated candidate and publishes the crate.
 5. Creates the GitHub Release and attaches the source crate.
 
-The validation workflow is also available manually for a selected commit.
+All 12 job executions remain required: candidate preparation, three core
+platforms, four native backends, two no-std targets, package/quality validation
+and publication. The validation workflow is also available manually for a
+selected commit.
 
-## Resume a failed release
+## Publish a committed candidate or resume a release
 
 Run the workflow with `candidate` set to the original **full commit SHA**.
 The candidate must belong to this repository's `main` history.
 The workflow reads its existing version and ignores `bump`.
+
+Use the existing release workflow for API dispatch:
+
+~~~http
+POST /repos/LIghtJUNction/zgpui/actions/workflows/release.yml/dispatches
+Accept: application/vnd.github+json
+X-GitHub-Api-Version: 2026-03-10
+~~~
+
+~~~json
+{
+  "ref": "main",
+  "inputs": {
+    "bump": "none",
+    "candidate": "<full lowercase commit SHA>"
+  }
+}
+~~~
+
+The candidate must already contain the intended Cargo.toml/Cargo.lock version.
+The authenticated GitHub caller needs Actions write permission; the workflow
+still requires its existing publication secret and candidate checks. See the
+[GitHub workflow dispatch API](https://docs.github.com/en/rest/actions/workflows?apiVersion=2026-03-10#create-a-workflow-dispatch-event).
 
 Validation runs against the fixed candidate again. An existing tag must resolve
 to that commit. An existing crates.io version is reused only when its registry

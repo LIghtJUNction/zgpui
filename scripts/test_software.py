@@ -8,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = r"""
+#define _DEFAULT_SOURCE 1
 #include "zgpui.h"
 #include <assert.h>
 #include <limits.h>
@@ -15,6 +16,15 @@ SOURCE = r"""
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/mman.h>
+#include <unistd.h>
+static int fail_next_mapping;
+void *__real_mmap(void *,size_t,int,int,int,off_t);
+void *__wrap_mmap(void *at,size_t bytes,int prot,int flags,int fd,off_t offset) {
+    if(fail_next_mapping) { --fail_next_mapping; errno=ENOMEM; return MAP_FAILED; }
+    return __real_mmap(at,bytes,prot,flags,fd,offset);
+}
 static int raster_calls;
 ZgpuiBitmap zgpui_rasterize(const char *text,int size,int bold) {
     (void)text;(void)size;(void)bold;
@@ -65,6 +75,12 @@ static void text(void) {
     assert(zgpui_text("same",1,1,15,0,0x0000ffff)==1.5f);
     assert(pixel(1,1)==255&&pixel(2,1)==128&&pixel(1,2)==0&&pixel(2,2)==255);
     assert(raster_calls==1&&zgpui_measure("same",15,0)==1.5f&&raster_calls==1);
+    int w,h;uint32_t saved[64];memcpy(saved,zgpui_software_pixels(&w,&h),sizeof(saved));
+    zgpui_software_release();
+    assert(!zgpui_software_pixels(&w,&h)&&w==8&&h==8);
+    zgpui_begin(8,8,0x000000ff);
+    assert(zgpui_text("same",1,1,15,0,0x0000ffff)==1.5f&&raster_calls==1);
+    assert(!memcmp(saved,zgpui_software_pixels(&w,&h),sizeof(saved)));
     assert(zgpui_measure("same",16,0)==1.5f&&raster_calls==2);
     for(int i=0;i<200;i++){char key[32];snprintf(key,sizeof(key),"text-%d",i);zgpui_measure(key,15,0);}
     int before=raster_calls;zgpui_measure("same",15,0);assert(raster_calls==before+1);
@@ -82,12 +98,57 @@ static void resize(void) {
     assert(pixel(8,6)==0x123456);
     zgpui_gpu_destroy();assert(!zgpui_software_pixels(&w,&h)&&w==0&&h==0);
 }
+static size_t resident_pages(uint32_t *p,size_t bytes) {
+    long page=sysconf(_SC_PAGESIZE);assert(page>0);
+    size_t count=(bytes+(size_t)page-1)/(size_t)page;
+    unsigned char *present=calloc(count,1);assert(present);
+    assert(mincore(p,bytes,present)==0);
+    size_t resident=0;for(size_t i=0;i<count;i++)resident+=present[i]&1u;
+    free(present);return resident;
+}
+static void release_frame(void) {
+    const int width=1120,height=760;
+    const size_t bytes=(size_t)width*height*sizeof(uint32_t);
+    zgpui_begin(width,height,0x123456ff);
+    int w,h;uint32_t *before=zgpui_software_pixels(&w,&h);assert(before);
+    long page=sysconf(_SC_PAGESIZE);assert(page>0);
+    assert(resident_pages(before,bytes)==(bytes+(size_t)page-1)/(size_t)page);
+    zgpui_clip(1,1,1,1);
+    zgpui_software_release();
+    assert(!zgpui_software_pixels(&w,&h)&&w==width&&h==height);
+    assert(resident_pages(before,bytes)==0);
+    zgpui_software_release();
+    zgpui_rect(0,0,width,height,0,0xffffffff);
+    assert(resident_pages(before,bytes)==0);
+    zgpui_begin(width,height,0x654321ff);
+    assert(zgpui_software_pixels(&w,&h)==before);
+    for(size_t i=0;i<(size_t)width*height;i++)assert(before[i]==0x654321);
+    zgpui_rect(width-1,height-1,1,1,0,0xffffffff);
+    assert(pixel(width-1,height-1)==0xffffff);
+}
+static void allocation_failure(void) {
+    zgpui_begin(8,8,0x123456ff);
+    int w,h;uint32_t *before=zgpui_software_pixels(&w,&h);
+    fail_next_mapping=1;
+    assert(!zgpui_software_resize(9,7));
+    assert(zgpui_software_pixels(&w,&h)==before&&w==8&&h==8);
+    assert(pixel(7,7)==0x123456);
+    fail_next_mapping=1;
+    zgpui_begin(9,7,0xffffffff);
+    assert(!zgpui_software_pixels(&w,&h)&&w==8&&h==8);
+    zgpui_rect(0,0,8,8,0,0xff0000ff);
+    assert(before[0]==0x123456);
+    zgpui_begin(8,8,0x654321ff);
+    assert(zgpui_software_pixels(&w,&h)==before&&pixel(7,7)==0x654321);
+}
 int main(int argc,char **argv) {
     assert(argc==2);
     if(!strcmp(argv[1],"geometry"))geometry();
     else if(!strcmp(argv[1],"clipping"))clipping();
     else if(!strcmp(argv[1],"text"))text();
     else if(!strcmp(argv[1],"resize"))resize();
+    else if(!strcmp(argv[1],"release"))release_frame();
+    else if(!strcmp(argv[1],"allocation"))allocation_failure();
     else return 2;
     zgpui_gpu_destroy();
     return 0;
@@ -107,7 +168,8 @@ class SoftwareRasterTests(unittest.TestCase):
             os.environ.get("CC", "cc"), "-std=c11", "-O1", "-g",
             "-Wall", "-Wextra", "-Werror", "-fsanitize=address,undefined",
             "-fno-omit-frame-pointer", "-DZGPUI_SOFTWARE", "-I", str(ROOT / "native"),
-            str(fixture), str(ROOT / "native/draw_software.c"), "-lm", "-o", str(cls.binary),
+            str(fixture), str(ROOT / "native/draw_software.c"),
+            "-Wl,--wrap=mmap", "-lm", "-o", str(cls.binary),
         ], check=True)
 
     def run_case(self, case):
@@ -127,6 +189,12 @@ class SoftwareRasterTests(unittest.TestCase):
 
     def test_resize_limits_and_recovery(self):
         self.run_case("resize")
+
+    def test_present_release_drops_residency_and_begin_clears_all(self):
+        self.run_case("release")
+
+    def test_allocation_failure_preserves_storage_and_recovers(self):
+        self.run_case("allocation")
 
 if __name__ == "__main__":
     unittest.main()
