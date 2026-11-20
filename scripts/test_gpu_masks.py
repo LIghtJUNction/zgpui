@@ -18,7 +18,7 @@ SOURCE = r"""
 
 typedef struct {GLuint id;size_t bytes;} Allocation;
 static Allocation allocations[16384];
-static int forced_limit,actual_limit,fail_after=-1,live_count;
+static int forced_limit,actual_limit,fail_after=-1,live_count,fail_next_gen,image_calls;
 static size_t live_bytes,peak_bytes;
 static GLuint bound_texture;
 static Allocation *allocation(GLuint id){
@@ -27,6 +27,8 @@ static Allocation *allocation(GLuint id){
     assert(!"unowned texture");return NULL;
 }
 static void tracked_gen(GLsizei count,GLuint *ids){
+    int failure=fail_next_gen;fail_next_gen=0;
+    if(failure==1){memset(ids,0,(size_t)count*sizeof(*ids));return;}
     glGenTextures(count,ids);
     for(int j=0;j<count;j++){
         assert(ids[j]);
@@ -34,6 +36,7 @@ static void tracked_gen(GLsizei count,GLuint *ids){
         assert(i<sizeof(allocations)/sizeof(allocations[0]));
         allocations[i]=(Allocation){ids[j],0};live_count++;
     }
+    if(failure==2){GLuint unused=0;glGenTextures(-1,&unused);}
 }
 static void tracked_delete(GLsizei count,const GLuint *ids){
     for(int j=0;j<count;j++)if(ids[j]){
@@ -51,6 +54,7 @@ static void tracked_integer(GLenum name,GLint *value){
 }
 static void tracked_image(GLenum target,GLint level,GLint internal,GLsizei width,
                           GLsizei height,GLint border,GLenum format,GLenum type,const void *pixels){
+    image_calls++;
     int maximum=forced_limit?forced_limit:actual_limit;
     assert(width>0 && height>0 && width<=maximum && height<=maximum);
     assert(!(width&(width-1)) && !(height&(height-1)));
@@ -134,6 +138,17 @@ static void failed_upload(void){
     assert(glGetError()==GL_NO_ERROR);
     zgpui_clear_text_cache();assert(!live_bytes && !live_count);
 }
+static void failed_generation(void){
+    for(int failure=1;failure<=2;failure++){
+        int uploads=image_calls;fail_next_gen=failure;
+        assert(zgpui_measure("A generated texture must be owned",20,0)==0);
+        assert(image_calls==uploads && !live_bytes && !live_count && !texture_bytes);
+        assert(glGetError()==GL_NO_ERROR);
+        assert(zgpui_measure("A generated texture must be owned",20,0)>20);
+        assert(image_calls>uploads && live_count>0);
+        zgpui_clear_text_cache();assert(!live_bytes && !live_count);
+    }
+}
 static void legacy(void){
     const char *version=(const char*)glGetString(GL_VERSION);
     const char *extensions=(const char*)glGetString(GL_EXTENSIONS);
@@ -162,6 +177,7 @@ int main(int argc,char **argv){
     if(!strcmp(argv[1],"tiles"))tiles();
     else if(!strcmp(argv[1],"budget"))budget();
     else if(!strcmp(argv[1],"failure"))failed_upload();
+    else if(!strcmp(argv[1],"generation-failure"))failed_generation();
     else if(!strcmp(argv[1],"legacy"))legacy();
     else assert(!"unknown fixture");
     zgpui_close(window);assert(!live_count && !live_bytes);
@@ -207,6 +223,9 @@ class GpuMaskTests(unittest.TestCase):
 
     def test_partial_upload_failure_releases_all_tiles_and_retries_cleanly(self):
         self.run_case("failure")
+
+    def test_texture_generation_failure_never_uploads_default_object(self):
+        self.run_case("generation-failure")
 
     def test_real_opengl_11_without_npot_renders_glyphs_and_round_corners(self):
         self.run_case("legacy", legacy=True)

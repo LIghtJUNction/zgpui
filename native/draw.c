@@ -75,6 +75,11 @@ static int upload_alpha(const unsigned char *pixels,int image_width,int image_he
     for(int i=0;i<16 && glGetError()!=GL_NO_ERROR;i++){}
     GLuint id=0;
     glGenTextures(1,&id);
+    GLenum error=glGetError();
+    if(!id || error!=GL_NO_ERROR){
+        if(id)glDeleteTextures(1,&id);
+        free(padded);return 0;
+    }
     glBindTexture(GL_TEXTURE_2D,id);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
@@ -83,7 +88,7 @@ static int upload_alpha(const unsigned char *pixels,int image_width,int image_he
     glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     glTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,storage_width,storage_height,0,
                  GL_ALPHA,GL_UNSIGNED_BYTE,padded);
-    GLenum error=glGetError();
+    error=glGetError();
     free(padded);
     if(!id || error!=GL_NO_ERROR){if(id)glDeleteTextures(1,&id);return 0;}
     *texture=id;
