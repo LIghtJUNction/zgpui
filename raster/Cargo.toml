@@ -1,0 +1,22 @@
+[package]
+name = "zgpui-raster"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+license = "MIT"
+authors = ["LIghtJUNction"]
+repository = "https://github.com/LIghtJUNction/zgpui"
+description = "Bounded headless premultiplied ARGB drawing and Linux system fonts"
+readme = "README.md"
+# The font source is shared with ../native. Consume this companion from a
+# pinned repository checkout; independent registry packaging is not supported.
+publish = false
+
+[features]
+default = ["font"]
+std = []
+font = ["std"]
+
+[[example]]
+name = "headless"
+required-features = ["font"]
