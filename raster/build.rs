@@ -72,4 +72,5 @@ fn main() {
     println!("cargo:rustc-link-lib=static=zgpui_raster_font");
     println!("cargo:rustc-link-lib=freetype");
     println!("cargo:rustc-link-lib=fontconfig");
+    println!("cargo:rustc-link-lib=m");
 }

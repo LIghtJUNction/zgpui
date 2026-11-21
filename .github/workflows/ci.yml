@@ -78,7 +78,7 @@ jobs:
           NATIVE_FEATURES: ${{ matrix.features }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libx11-dev libfreetype6-dev libfontconfig1-dev xvfb xauth xdotool x11-utils fonts-liberation fonts-noto-cjk imagemagick
+          sudo apt-get install -y build-essential pkg-config libx11-dev libfreetype6-dev libfontconfig1-dev xvfb xauth xdotool x11-utils fonts-liberation fonts-noto-cjk fonts-noto-color-emoji imagemagick
           if [ "$NATIVE_FEATURES" = native ]; then
             sudo apt-get install -y libgl1-mesa-dev
           fi
@@ -110,7 +110,7 @@ jobs:
       - name: Linux font development packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libfreetype6-dev libfontconfig1-dev fonts-liberation fonts-noto-cjk
+          sudo apt-get install -y build-essential pkg-config libfreetype6-dev libfontconfig1-dev fonts-liberation fonts-noto-cjk fonts-noto-color-emoji
       - run: cargo test --locked -p zgpui-raster
       - run: cargo test --locked -p zgpui-raster --no-default-features
       - run: cargo clippy --locked -p zgpui-raster --all-targets -- -D warnings

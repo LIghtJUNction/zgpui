@@ -2,6 +2,8 @@
 """Check Linux font matching, real glyphs and ownership with installed fonts.
 
 Requires scalable Latin/CJK fonts, for example Liberation Sans and Noto Sans CJK.
+Install Noto Color Emoji to exercise the fixed-strike regression (otherwise that
+one test explicitly skips).
 """
 import argparse
 import hashlib
@@ -124,6 +126,125 @@ static void bitmap_formats(void) {
     bitmap.width=3;bitmap.rows=257;assert(!font_bitmap_copy(&out,&bitmap,0,0));
     for(size_t i=0;i<sizeof(pixels);i++)assert(pixels[i]==42);
     bitmap=(FT_Bitmap){0};assert(font_bitmap_copy(&out,&bitmap,0,0));
+}
+static void bitmap_scaling(void) {
+    unsigned char pixels[16]={0};
+    ZgpuiBitmap out={.pixels=pixels,.width=4,.height=4};
+    unsigned char gray[]={0,64,128,255};
+    FT_Bitmap bitmap={.width=2,.rows=2,.pitch=2,.buffer=gray,
+                      .pixel_mode=FT_PIXEL_MODE_GRAY,.num_grays=256};
+    const unsigned char expected[]={0,16,48,64,32,52,92,112,
+                                    96,124,179,207,128,160,223,255};
+    assert(font_bitmap_copy_scaled(&out,&bitmap,0,0,2));
+    assert(!memcmp(pixels,expected,sizeof(expected)));
+    memset(pixels,42,sizeof(pixels));
+    assert(font_bitmap_copy_scaled(&out,&bitmap,0,0,0.5));
+    assert(pixels[0]==112);
+    for(size_t i=1;i<sizeof(pixels);i++)assert(pixels[i]==42);
+
+    unsigned char bottom_first[]={128,255,99,0,64,99};
+    bitmap.buffer=bottom_first;bitmap.pitch=-3;
+    assert(font_bitmap_copy_scaled(&out,&bitmap,0,0,2));
+    assert(!memcmp(pixels,expected,sizeof(expected)));
+    memset(pixels,42,sizeof(pixels));
+    assert(font_bitmap_copy_scaled(&out,&bitmap,-2,-2,2));
+    assert(pixels[0]==179&&pixels[1]==207&&pixels[4]==223&&pixels[5]==255);
+    assert(pixels[2]==42&&pixels[6]==42&&pixels[8]==42);
+
+    unsigned char mono[]={0xa0,0x50};
+    bitmap=(FT_Bitmap){.width=4,.rows=2,.pitch=1,.buffer=mono,.pixel_mode=FT_PIXEL_MODE_MONO};
+    memset(pixels,42,sizeof(pixels));
+    assert(font_bitmap_copy_scaled(&out,&bitmap,0,0,0.5));
+    assert(pixels[0]==128&&pixels[1]==128&&pixels[2]==42);
+
+    memset(pixels,42,sizeof(pixels));
+    const double invalid[]={0,-1,NAN,INFINITY,-INFINITY,DBL_MAX};
+    for(size_t i=0;i<sizeof(invalid)/sizeof(invalid[0]);i++)
+        assert(!font_bitmap_copy_scaled(&out,&bitmap,0,0,invalid[i]));
+    bitmap.pitch=INT_MIN;assert(!font_bitmap_copy_scaled(&out,&bitmap,0,0,0.5));
+    bitmap.pitch=1;bitmap.width=8192;
+    assert(!font_bitmap_copy_scaled(&out,&bitmap,0,0,2));
+    bitmap.width=4;bitmap.rows=256;
+    assert(!font_bitmap_copy_scaled(&out,&bitmap,0,0,2));
+    bitmap.rows=2;bitmap.pixel_mode=FT_PIXEL_MODE_BGRA;
+    assert(!font_bitmap_copy_scaled(&out,&bitmap,0,0,0.5));
+    bitmap.pixel_mode=FT_PIXEL_MODE_MONO;
+    for(int scale=1;scale<=2;scale++){
+        assert(font_bitmap_copy_scaled(&out,&bitmap,INT64_MIN,INT64_MAX,scale));
+        assert(font_bitmap_copy_scaled(&out,&bitmap,INT64_MAX,INT64_MIN,scale));
+    }
+    for(size_t i=0;i<sizeof(pixels);i++)assert(pixels[i]==42);
+
+    FT_Bitmap_Size strikes[]={
+        {.height=100,.y_ppem=0}, {.height=100,.y_ppem=8*64+32},
+        {.height=1,.y_ppem=16*64}, {.height=1,.y_ppem=32*64},
+        {.height=100,.y_ppem=-64},
+    };
+    struct FT_FaceRec_ face={.num_fixed_sizes=5,.available_sizes=strikes};
+    assert(font_nearest_strike(&face,12)==1); /* 8.5 ppem, not height=100. */
+    assert(font_nearest_strike(&face,16)==2);
+    assert(font_nearest_strike(&face,24)==3); /* Equal distance: prefer downsampling. */
+    assert(font_nearest_strike(&face,0)==-1&&font_nearest_strike(&face,97)==-1);
+    face.num_fixed_sizes=0;assert(font_nearest_strike(&face,16)==-1);
+}
+static int fixed_emoji(void) {
+    /* Missing test data may skip; a broken application size selection may not. */
+    FcConfig *config=FcInitLoadConfigAndFonts();
+    FcPattern *pattern=FcPatternCreate();
+    FcObjectSet *objects=FcObjectSetBuild(FC_FAMILY,NULL);
+    assert(config&&pattern&&objects);
+    assert(FcPatternAddString(pattern,FC_FAMILY,(const FcChar8 *)"Noto Color Emoji"));
+    FcFontSet *installed=FcFontList(config,pattern,objects);
+    int available=installed&&installed->nfont>0;
+    if(installed)FcFontSetDestroy(installed);
+    FcObjectSetDestroy(objects);FcPatternDestroy(pattern);FcConfigDestroy(config);
+    if(!available){
+        fputs("SKIP: install Noto Color Emoji for the fixed-strike test\n",stderr);
+        return 77;
+    }
+    /* Exercise the application's default sans + emoji fallback. Requesting
+     * an emoji-only family for the Latin primary is a different font policy. */
+    FontState state={0};
+    FT_Face face=face_for_state(&state,0x1f44b,16,0);
+    assert(face&&FT_Get_Char_Index(face,0x1f44b)&&FT_HAS_FIXED_SIZES(face));
+    const int sizes[]={12,16,24,32,48,96};
+    const char *wave="\xf0\x9f\x91\x8b";
+    float at_sixteen=0;
+    for(int bold=0;bold<2;bold++)for(size_t i=0;i<sizeof(sizes)/sizeof(sizes[0]);i++){
+        int size=sizes[i];
+        face=face_for_state(&state,0x1f44b,size,bold);assert(face);
+        assert(!FT_Load_Char(face,0x1f44b,FT_LOAD_RENDER));
+        /* No color ABI: FreeType supplies the grayscale coverage fallback. */
+        assert(face->glyph->bitmap.pixel_mode==FT_PIXEL_MODE_GRAY);
+        assert(face->glyph->bitmap.width&&face->glyph->bitmap.rows);
+        ZgpuiBitmap bitmap=font_rasterize(&state,wave,size,bold);
+        assert(bitmap_hash(bitmap));
+        float advance=font_text_advance(&state,wave,size,bold);
+        assert(advance==bitmap.advance&&advance>size/2.0&&advance<size*2.0);
+        assert(bitmap.width>=advance&&bitmap.width<=size*2+2);
+        assert(bitmap.height<=size*2+4);
+        if(size==16)at_sixteen=advance;
+        if(size==32)assert(fabs((double)advance-2.0*at_sixteen)<1.0);
+        free(bitmap.pixels);
+        bitmap=font_rasterize(&state,"你好，世界 👋 — café",size,bold);
+        assert(bitmap_hash(bitmap));
+        assert(bitmap.advance==font_text_advance(&state,"你好，世界 👋 — café",size,bold));
+        free(bitmap.pixels);
+    }
+    ZgpuiBitmap small=font_rasterize(&state,wave,16,0);
+    uint64_t hash=bitmap_hash(small);int width=small.width,height=small.height;
+    free(small.pixels);
+    int loaded=config_loads;
+    for(int i=0;i<12;i++){
+        ZgpuiBitmap large=font_rasterize(&state,wave,48,0);
+        assert(bitmap_hash(large));free(large.pixels);
+        small=font_rasterize(&state,wave,16,0);
+        assert(small.width==width&&small.height==height&&bitmap_hash(small)==hash);
+        free(small.pixels);
+    }
+    assert(config_loads==loaded&&config_loads==config_destroys);
+    font_state_destroy(&state);
+    return 0;
 }
 static void measurement(void) {
     const char *samples[]={"Window Backup Play 012345", "Minecraft 世界 备份 启动器",
@@ -291,6 +412,7 @@ static void window_probe(void) {
     zgpui_text("Café déjà vu · Ελληνικά · Кириллица",44,422,22,0,0xe8e6e3ff);
     zgpui_text("12 px: World 世界 备份",44,496,12,0,0xe8e6e3ff);
     zgpui_text("32 px: World 世界 备份",44,542,32,1,0xe8e6e3ff);
+    zgpui_text("Emoji: 你好，世界 👋 — café",44,614,22,0,0xe8e6e3ff);
     zgpui_swap(w);
     puts("READY");fflush(stdout);
     for(int i=0;i<120;i++) {
@@ -303,6 +425,8 @@ int main(int argc,char **argv) {
     assert(argc==2);
     if(!strcmp(argv[1],"measurement"))measurement();
     else if(!strcmp(argv[1],"bitmap-formats"))bitmap_formats();
+    else if(!strcmp(argv[1],"bitmap-scaling"))bitmap_scaling();
+    else if(!strcmp(argv[1],"fixed-emoji")){int result=fixed_emoji();if(result){FcFini();return result;}}
     else if(!strcmp(argv[1],"matching"))matching();
     else if(!strcmp(argv[1],"caching"))caching();
     else if(!strcmp(argv[1],"shared-weight"))shared_weight();
@@ -397,7 +521,7 @@ def check_window(features, output):
             "features": features,
             "window": [width, height],
             "colors": colors,
-            "scripts": ["Latin", "CJK", "Greek", "Cyrillic"],
+            "scripts": ["Latin", "CJK", "Greek", "Cyrillic", "Emoji"],
             "weights": ["regular", "bold"],
             "pixel_sizes": [12, 20, 22, 28, 32],
             "locale": "zh-cn",
@@ -422,19 +546,28 @@ class LinuxFontTests(unittest.TestCase):
             ["pkg-config","--variable=confdir","fontconfig"],text=True).strip()
         cls.system_config=Path(confdir)/"fonts.conf"
 
-    def run_case(self,case,environment=None):
+    def run_case(self,case,environment=None,*,allow_missing_emoji=False):
         env={k:v for k,v in os.environ.items()
              if k not in {"FC_LANG","LC_ALL","LC_CTYPE","LANG","FONTCONFIG_FILE"}}
         env.update({"LANG":"C.UTF-8","ASAN_OPTIONS":"detect_leaks=1:halt_on_error=1",
                     "UBSAN_OPTIONS":"halt_on_error=1"})
         env.update(environment or {})
-        subprocess.run([str(self.binary),case],check=True,env=env,timeout=60)
+        result=subprocess.run([str(self.binary),case],check=False,env=env,timeout=60)
+        if result.returncode==77 and allow_missing_emoji:
+            self.skipTest("Install Noto Color Emoji to exercise fixed bitmap strikes")
+        result.check_returncode()
 
     def test_measurement_matches_real_glyph_advance(self):
         self.run_case("measurement")
 
     def test_packed_gray_negative_pitch_and_invalid_bitmap_bounds(self):
         self.run_case("bitmap-formats")
+
+    def test_scaled_coverage_pitch_clipping_and_numeric_bounds(self):
+        self.run_case("bitmap-scaling")
+
+    def test_fixed_emoji_ink_metrics_and_size_cache(self):
+        self.run_case("fixed-emoji",allow_missing_emoji=True)
 
     def test_locale_matching_uses_system_defaults(self):
         for environment in [

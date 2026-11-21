@@ -74,6 +74,13 @@ scene API and its default features remain unchanged.
 [Native integration and migration](docs/native.md) covers features, system
 libraries, examples and the move from the former native UI package.
 
+Linux font fallback also supports fixed-size bitmap strikes, scaled to the
+requested text size. Color bitmap fonts such as Noto Color Emoji render as
+grayscale coverage through the shared native and headless font implementation.
+Strike selection and scaling follow the [FreeType sizing contract](https://freetype.org/freetype2/docs/reference/ft2-sizing_and_scaling.html#ft_select_size);
+the [FreeType glyph loading contract](https://freetype.org/freetype2/docs/reference/ft2-glyph_retrieval.html#ft_load_xxx)
+provides the grayscale bitmap when color output is not requested.
+
 ### Materials and folding layers
 
 Native hosts can opt into cached in-window materials: frosted glass, progressive
