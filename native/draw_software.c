@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include "effects_software.h"
 
 #define CACHE_COUNT 96
 #define CACHE_BYTES (2u * 1024u * 1024u)
@@ -275,6 +276,7 @@ void zgpui_clear_text_cache(void) {
     clock_tick = 0;
 }
 void zgpui_gpu_destroy(void) {
+    software_effect_destroy();
     zgpui_clear_text_cache();
     if (pixels) munmap(pixels, pixel_bytes);
     pixels = NULL; pixel_bytes = 0; frame_ready = 0;

@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "effects_gpu.h"
 #define CACHE_COUNT 96
 #define TEXT_CACHE_BYTES 2097152u
 #define MAX_TEXT_WIDTH 8192
@@ -155,6 +156,7 @@ static Text *get_text(const char *text,int size,int bold) {
 }
 static void color(uint32_t value) {glColor4ub((GLubyte)(value>>24),(GLubyte)(value>>16),(GLubyte)(value>>8),(GLubyte)value);}
 void zgpui_begin(int width,int height,uint32_t background) {
+    fx_frame_begin(width,height);
     screen_height=height;
     glViewport(0,0,width,height);glMatrixMode(GL_PROJECTION);glLoadIdentity();glOrtho(0,width,height,0,-1,1);
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();glDisable(GL_DEPTH_TEST);glDisable(GL_CULL_FACE);
@@ -253,5 +255,5 @@ float zgpui_measure(const char *text,int size,int bold){
 void zgpui_clip(int x,int y,int width,int height){glEnable(GL_SCISSOR_TEST);glScissor(x,screen_height-y-height,width>0?width:0,height>0?height:0);}
 void zgpui_unclip(void){glDisable(GL_SCISSOR_TEST);}
 void zgpui_clear_text_cache(void){for(int i=0;i<CACHE_COUNT;i++)drop(&cache[i]);clock_tick=0;}
-void zgpui_gpu_destroy(void){zgpui_clear_text_cache();for(int i=1;i<=64;i++){if(rounded_masks[i].texture)glDeleteTextures(1,&rounded_masks[i].texture);memset(&rounded_masks[i],0,sizeof(rounded_masks[i]));}texture_limit=0;}
+void zgpui_gpu_destroy(void){fx_destroy();zgpui_clear_text_cache();for(int i=1;i<=64;i++){if(rounded_masks[i].texture)glDeleteTextures(1,&rounded_masks[i].texture);memset(&rounded_masks[i],0,sizeof(rounded_masks[i]));}texture_limit=0;}
 const char *zgpui_gpu_info(void){const GLubyte *s=glGetString(GL_RENDERER);return s?(const char*)s:"unknown";}

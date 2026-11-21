@@ -9,6 +9,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt::{self, Write};
 
+/// Allocation-free material descriptions and explicit rendering budgets.
+pub mod effects;
 pub mod layout;
 
 /// Optional native windows, immediate widgets and platform rendering.

@@ -195,4 +195,5 @@ jobs:
               raise SystemExit(f"Invalid package contents: leaked={leaked}, missing={missing}")
           print("Core and native sources included; ignored artifacts excluded")
           PY
+      - run: python3 -m unittest discover -s scripts -p test_materials_report.py
       - run: cargo package --locked

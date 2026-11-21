@@ -1,10 +1,14 @@
 //! Native GPU windows and small immediate widgets. No third-party Rust crates.
 //! All window, event and OpenGL work stays on the thread that created the window.
+use crate::effects::{
+    CacheKey, EffectBudget, EffectCapabilities, EffectOutcome, EffectStats, Fold, FoldAxis,
+    MAX_SHADER_SLOTS, MAX_SHADER_SOURCE_BYTES, Material, MaterialPreset, Quality, ShaderHandle,
+};
 use std::{
     ffi::{CStr, CString, c_char, c_int, c_void},
     marker::PhantomData,
     rc::Rc,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
 };
 unsafe extern "C" {
     fn zgpui_open(
@@ -35,6 +39,272 @@ unsafe extern "C" {
     fn zgpui_clip(x: c_int, y: c_int, width: c_int, height: c_int);
     fn zgpui_unclip();
     fn zgpui_gpu_info() -> *const c_char;
+    fn zgpui_effect_configure(window: *mut c_void, config: *const NativeEffectConfig) -> c_int;
+    fn zgpui_effect_capabilities(window: *mut c_void, out: *mut NativeEffectCapabilities) -> c_int;
+    fn zgpui_effect_stats(window: *mut c_void, out: *mut NativeEffectStats) -> c_int;
+    fn zgpui_draw_effect(window: *mut c_void, effect: *const NativeEffect) -> c_int;
+    fn zgpui_effect_capture(window: *mut c_void, capture: *const NativeEffectCapture) -> c_int;
+    fn zgpui_effect_invalidate(window: *mut c_void, id: u64) -> c_int;
+    fn zgpui_effect_clear(window: *mut c_void) -> c_int;
+    fn zgpui_effect_shader_register(
+        window: *mut c_void,
+        source: *const c_char,
+        length: usize,
+        slot: *mut u32,
+        error: *mut c_char,
+        capacity: usize,
+    ) -> c_int;
+    fn zgpui_effect_shader_remove(window: *mut c_void, slot: u32) -> c_int;
+    fn zgpui_effect_status(status: c_int) -> *const c_char;
+    fn zgpui_effect_finish(window: *mut c_void) -> c_int;
+}
+
+const EFFECT_ABI: u32 = 1;
+const EFFECT_LAYER: u32 = 1;
+const EFFECT_CACHE_ONLY: u32 = 2;
+
+#[repr(C)]
+struct NativeEffectConfig {
+    abi_version: u32,
+    quality: u32,
+    max_entries: u32,
+    max_shader_slots: u32,
+    max_texture_bytes: u64,
+}
+
+#[derive(Default)]
+#[repr(C)]
+struct NativeEffectCapabilities {
+    abi_version: u32,
+    flags: u32,
+    max_texture_size: u32,
+    max_entries: u32,
+    max_shader_slots: u32,
+    max_shader_bytes: u32,
+    max_texture_bytes: u64,
+}
+
+#[derive(Default)]
+#[repr(C)]
+struct NativeEffectStats {
+    texture_bytes: u64,
+    peak_texture_bytes: u64,
+    captures: u64,
+    cache_hits: u64,
+    cache_misses: u64,
+    evictions: u64,
+    blur_passes: u64,
+    draw_calls: u64,
+    shader_compiles: u64,
+    fallbacks: u64,
+    live_entries: u32,
+    live_programs: u32,
+    last_status: u32,
+    quality: u32,
+}
+
+#[derive(Clone, Copy)]
+#[repr(C)]
+struct NativeEffectCapture {
+    id: u64,
+    revision: u64,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+}
+
+#[repr(C)]
+struct NativeEffect {
+    source: NativeEffectCapture,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    radius: f32,
+    blur_radius: f32,
+    saturation: f32,
+    opacity: f32,
+    tint_rgba: u32,
+    preset: u32,
+    tint_mix: f32,
+    noise: f32,
+    refraction: f32,
+    border: f32,
+    highlight: f32,
+    progressive_blur: f32,
+    fold_progress: f32,
+    fold_radians: f32,
+    fold_perspective: f32,
+    dim: f32,
+    fold_anchor: f32,
+    fold_axis: u32,
+    flags: u32,
+    shader_slot: u32,
+    shader_params: [f32; 8],
+}
+
+fn effect_status(status: c_int) -> Result<(), String> {
+    if status == 0 {
+        return Ok(());
+    }
+    let message = unsafe { zgpui_effect_status(status) };
+    Err(if message.is_null() {
+        format!("native material operation failed ({status})")
+    } else {
+        unsafe { CStr::from_ptr(message) }
+            .to_string_lossy()
+            .into_owned()
+    })
+}
+
+fn registered_shader(
+    owner: u64,
+    shaders: &[Option<ShaderHandle>; MAX_SHADER_SLOTS],
+    handle: ShaderHandle,
+) -> Result<u32, String> {
+    if handle.owner != owner || !shaders.contains(&Some(handle)) {
+        return Err("Shader handle belongs to another window or has been removed".into());
+    }
+    Ok(handle.native)
+}
+
+fn effect_rectangle(rect: Rect) -> Result<Rect, String> {
+    if [rect.x, rect.y, rect.w, rect.h]
+        .iter()
+        .any(|value| !value.is_finite())
+    {
+        return Err("Material rectangles must be finite".into());
+    }
+    if rect.x.abs() > 65_536.0
+        || rect.y.abs() > 65_536.0
+        || !(1.0..=65_536.0).contains(&rect.w)
+        || !(1.0..=65_536.0).contains(&rect.h)
+    {
+        return Err("Material rectangles require positive dimensions within 65536 pixels".into());
+    }
+    Ok(rect)
+}
+
+fn capture_request(rect: Rect, key: CacheKey) -> Result<NativeEffectCapture, String> {
+    key.validate().map_err(|error| error.to_string())?;
+    let rect = effect_rectangle(rect)?;
+    Ok(NativeEffectCapture {
+        id: key.id,
+        revision: key.revision,
+        x: rect.x,
+        y: rect.y,
+        width: rect.w,
+        height: rect.h,
+    })
+}
+
+fn shader_source(source: &str) -> Result<(), String> {
+    if source.is_empty() || source.len() > MAX_SHADER_SOURCE_BYTES || source.as_bytes().contains(&0)
+    {
+        return Err("Custom shader source must contain 1..16384 UTF-8 bytes without NUL".into());
+    }
+    Ok(())
+}
+
+fn read_effect_stats(window: *mut c_void) -> Result<EffectStats, String> {
+    let mut raw = NativeEffectStats::default();
+    effect_status(unsafe { zgpui_effect_stats(window, &mut raw) })?;
+    let quality = match raw.quality {
+        0 => Quality::Off,
+        1 => Quality::Low,
+        2 => Quality::Balanced,
+        3 => Quality::High,
+        _ => return Err("Native material renderer reported an invalid quality".into()),
+    };
+    Ok(EffectStats {
+        texture_bytes: raw.texture_bytes,
+        peak_texture_bytes: raw.peak_texture_bytes,
+        captures: raw.captures,
+        cache_hits: raw.cache_hits,
+        cache_misses: raw.cache_misses,
+        evictions: raw.evictions,
+        blur_passes: raw.blur_passes,
+        draw_calls: raw.draw_calls,
+        shader_compiles: raw.shader_compiles,
+        fallbacks: raw.fallbacks,
+        live_entries: raw.live_entries,
+        live_programs: raw.live_programs,
+        last_status: raw.last_status,
+        quality,
+    })
+}
+
+#[cfg(test)]
+mod effect_tests {
+    use super::*;
+    use core::mem::{offset_of, size_of};
+
+    #[test]
+    fn effect_abi_matches_the_versioned_c_header() {
+        assert_eq!(size_of::<NativeEffectConfig>(), 24);
+        assert_eq!(size_of::<NativeEffectCapabilities>(), 32);
+        assert_eq!(size_of::<NativeEffectStats>(), 96);
+        assert_eq!(size_of::<NativeEffectCapture>(), 32);
+        assert_eq!(size_of::<NativeEffect>(), 160);
+        assert_eq!(offset_of!(NativeEffect, x), 32);
+        assert_eq!(offset_of!(NativeEffect, tint_rgba), 64);
+        assert_eq!(offset_of!(NativeEffect, highlight), 88);
+        assert_eq!(offset_of!(NativeEffect, fold_progress), 96);
+        assert_eq!(offset_of!(NativeEffect, shader_params), 128);
+    }
+
+    #[test]
+    fn copied_shader_handles_do_not_survive_removal_or_window_reuse() {
+        let old = ShaderHandle {
+            owner: 1,
+            generation: 1,
+            native: 1,
+        };
+        let replacement = ShaderHandle {
+            generation: 2,
+            ..old
+        };
+        let other_window = ShaderHandle { owner: 2, ..old };
+        let mut shaders = [None; MAX_SHADER_SLOTS];
+        shaders[0] = Some(old);
+        assert_eq!(registered_shader(1, &shaders, old).unwrap(), 1);
+        assert!(registered_shader(2, &shaders, old).is_err());
+        assert!(registered_shader(1, &shaders, other_window).is_err());
+        shaders[0] = Some(replacement);
+        assert!(registered_shader(1, &shaders, old).is_err());
+        assert_eq!(registered_shader(1, &shaders, replacement).unwrap(), 1);
+        shaders[0] = None;
+        assert!(registered_shader(1, &shaders, replacement).is_err());
+    }
+
+    #[test]
+    fn capture_keys_and_rectangles_are_validated_before_native_calls() {
+        assert!(capture_request(Rect::new(1.0, 2.0, 64.0, 32.0), CacheKey::new(0, 1)).is_err());
+        for rect in [
+            Rect::new(f32::NAN, 0.0, 64.0, 32.0),
+            Rect::new(0.0, 0.0, f32::INFINITY, 32.0),
+            Rect::new(0.0, 0.0, 0.0, 32.0),
+            Rect::new(0.0, 0.0, 65_537.0, 32.0),
+        ] {
+            assert!(capture_request(rect, CacheKey::new(1, 1)).is_err());
+        }
+        let capture =
+            capture_request(Rect::new(1.0, 2.0, 64.0, 32.0), CacheKey::new(7, 9)).unwrap();
+        assert_eq!((capture.id, capture.revision), (7, 9));
+        assert_eq!(
+            (capture.x, capture.y, capture.width, capture.height),
+            (1.0, 2.0, 64.0, 32.0)
+        );
+    }
+
+    #[test]
+    fn custom_shader_source_is_bounded_and_never_nul_truncated() {
+        assert!(shader_source("").is_err());
+        assert!(shader_source("vec4 effect(){}\0ignored").is_err());
+        assert!(shader_source(&" ".repeat(MAX_SHADER_SOURCE_BYTES + 1)).is_err());
+        assert!(shader_source(&" ".repeat(MAX_SHADER_SOURCE_BYTES)).is_ok());
+    }
 }
 #[repr(C)]
 struct NativeEvent {
@@ -64,6 +334,7 @@ pub enum Event {
     Close,
 }
 static WINDOW_OPEN: AtomicBool = AtomicBool::new(false);
+static EFFECT_OWNER: AtomicU64 = AtomicU64::new(1);
 
 /// The built-in palette. Custom colors are preserved.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -188,6 +459,9 @@ pub struct Window {
     palette: Option<Palette>,
     font_family: String,
     raw: *mut c_void,
+    effect_owner: u64,
+    effect_shaders: [Option<ShaderHandle>; MAX_SHADER_SLOTS],
+    next_shader_generation: u64,
     _thread: PhantomData<Rc<()>>,
 }
 fn string(value: &str) -> CString {
@@ -205,6 +479,16 @@ impl Window {
         {
             return Err("zgpui supports one live window per process".into());
         }
+        let effect_owner =
+            match EFFECT_OWNER.try_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+                value.checked_add(1)
+            }) {
+                Ok(owner) => owner,
+                Err(_) => {
+                    WINDOW_OPEN.store(false, Ordering::Release);
+                    return Err("Native window identity space exhausted".into());
+                }
+            };
         let title = string(title);
         let mut error = [0 as c_char; 1024];
         let raw = unsafe {
@@ -227,6 +511,9 @@ impl Window {
             palette: None,
             font_family: String::new(),
             raw,
+            effect_owner,
+            effect_shaders: [None; MAX_SHADER_SLOTS],
+            next_shader_generation: 1,
             _thread: PhantomData,
         })
     }
@@ -240,6 +527,151 @@ impl Window {
     /// Restore this window's selected built-in theme.
     pub fn clear_palette(&mut self) {
         self.palette = None;
+    }
+    /// Configure opt-in materials. This never schedules a redraw or animation.
+    /// Existing drawing primitives do not allocate material textures or programs.
+    pub fn set_effects(&mut self, quality: Quality, budget: EffectBudget) -> Result<(), String> {
+        let budget = budget.validate().map_err(|error| error.to_string())?;
+        if self
+            .effect_shaders
+            .iter()
+            .flatten()
+            .any(|shader| shader.native > budget.max_shader_slots)
+        {
+            return Err("Remove registered shaders before reducing their slot budget".into());
+        }
+        let config = NativeEffectConfig {
+            abi_version: EFFECT_ABI,
+            quality: quality as u32,
+            max_entries: budget.max_entries,
+            max_shader_slots: budget.max_shader_slots,
+            max_texture_bytes: budget.cache_bytes,
+        };
+        effect_status(unsafe { zgpui_effect_configure(self.raw, &config) })
+    }
+
+    /// Query actual current-context support. Software fallback remains explicit.
+    pub fn effect_capabilities(&self) -> Result<EffectCapabilities, String> {
+        let mut raw = NativeEffectCapabilities::default();
+        effect_status(unsafe { zgpui_effect_capabilities(self.raw, &mut raw) })?;
+        if raw.abi_version != EFFECT_ABI {
+            return Err("Native material capability ABI differs from the Rust interface".into());
+        }
+        Ok(EffectCapabilities {
+            gpu: raw.flags & 1 != 0,
+            software: raw.flags & 32 != 0,
+            backdrop_capture: raw.flags & 2 != 0,
+            blur: raw.flags & 4 != 0,
+            progressive_blur: raw.flags & 5 == 5,
+            projective_fold: raw.flags & 16 != 0,
+            custom_shaders: raw.flags & 8 != 0,
+            max_texture_size: raw.max_texture_size,
+            max_cache_entries: raw.max_entries,
+            max_shader_slots: raw.max_shader_slots,
+            max_shader_source_bytes: raw.max_shader_bytes,
+            max_cache_bytes: raw.max_texture_bytes,
+        })
+    }
+
+    /// Read cumulative work counters without waiting for GPU completion.
+    pub fn effect_stats(&self) -> Result<EffectStats, String> {
+        read_effect_stats(self.raw)
+    }
+
+    /// Discard all cached revisions of an ID, retaining registered shaders.
+    pub fn invalidate_effect(&mut self, id: u64) -> Result<(), String> {
+        CacheKey::new(id, 0)
+            .validate()
+            .map_err(|error| error.to_string())?;
+        effect_status(unsafe { zgpui_effect_invalidate(self.raw, id) })
+    }
+
+    /// Discard capture and blur textures, retaining registered shaders and counters.
+    pub fn clear_effects(&mut self) -> Result<(), String> {
+        effect_status(unsafe { zgpui_effect_clear(self.raw) })
+    }
+
+    /// Register a bounded GLSL 1.20 `vec4 effect(vec2, vec2, vec4)` function.
+    /// The renderer supplies `main` and `uniform float u_params[8]`. Compilation
+    /// is explicit and synchronous; source is trusted application shader code.
+    /// There is no shader execution-time sandbox or automatic CPU translation.
+    pub fn register_shader(&mut self, source: &str) -> Result<ShaderHandle, String> {
+        shader_source(source)?;
+        let next = self
+            .next_shader_generation
+            .checked_add(1)
+            .ok_or("Custom shader registration generation exhausted")?;
+        let index = self
+            .effect_shaders
+            .iter()
+            .position(Option::is_none)
+            .ok_or("Custom shader registration slots are full")?;
+        let capabilities = self.effect_capabilities()?;
+        if !capabilities.custom_shaders {
+            return Err("This renderer does not support custom material shaders".into());
+        }
+        let mut slot = 0;
+        let mut diagnostic = [0u8; 4096];
+        let status = unsafe {
+            zgpui_effect_shader_register(
+                self.raw,
+                source.as_ptr().cast(),
+                source.len(),
+                &mut slot,
+                diagnostic.as_mut_ptr().cast(),
+                diagnostic.len(),
+            )
+        };
+        if status != 0 {
+            let size = diagnostic
+                .iter()
+                .position(|byte| *byte == 0)
+                .unwrap_or(diagnostic.len());
+            let detail = String::from_utf8_lossy(&diagnostic[..size]);
+            let message = effect_status(status).expect_err("nonzero native status");
+            return Err(if detail.is_empty() {
+                message
+            } else {
+                format!("{message}: {detail}")
+            });
+        }
+        if slot == 0
+            || slot > MAX_SHADER_SLOTS as u32
+            || self
+                .effect_shaders
+                .iter()
+                .flatten()
+                .any(|shader| shader.native == slot)
+        {
+            return Err("Native renderer returned an invalid custom shader slot".into());
+        }
+        let handle = ShaderHandle {
+            owner: self.effect_owner,
+            generation: self.next_shader_generation,
+            native: slot,
+        };
+        self.effect_shaders[index] = Some(handle);
+        self.next_shader_generation = next;
+        Ok(handle)
+    }
+
+    /// Remove a shader. Copies of its handle become invalid immediately.
+    pub fn unregister_shader(&mut self, handle: ShaderHandle) -> Result<(), String> {
+        let slot = registered_shader(self.effect_owner, &self.effect_shaders, handle)?;
+        effect_status(unsafe { zgpui_effect_shader_remove(self.raw, slot) })?;
+        for registered in &mut self.effect_shaders {
+            if *registered == Some(handle) {
+                *registered = None;
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    /// Wait for submitted GPU work, for explicit benchmarks or synchronization.
+    /// Normal material drawing and presentation never call this method.
+    pub fn finish_effects(&mut self) -> Result<(), String> {
+        effect_status(unsafe { zgpui_effect_finish(self.raw) })
     }
     /// Prefer a font family for this window. `monospace` selects the platform's
     /// fixed-width family; an empty string restores the original default.
@@ -324,6 +756,9 @@ impl Window {
             palette: self.palette,
             width,
             height,
+            raw: self.raw,
+            effect_owner: self.effect_owner,
+            effect_shaders: &self.effect_shaders,
             _window: PhantomData,
         }
     }
@@ -374,11 +809,138 @@ pub struct Canvas<'a> {
     palette: Option<Palette>,
     pub width: f32,
     pub height: f32,
+    raw: *mut c_void,
+    effect_owner: u64,
+    effect_shaders: &'a [Option<ShaderHandle>; MAX_SHADER_SLOTS],
     _window: PhantomData<&'a mut Window>,
 }
 impl Canvas<'_> {
     fn color(&self, color: u32) -> u32 {
         resolve_color(self.theme, self.palette, color)
+    }
+    /// Read this frame's submitted work counters without a GPU fence or redraw.
+    pub fn effect_stats(&self) -> Result<EffectStats, String> {
+        read_effect_stats(self.raw)
+    }
+    /// Capture and render an application-owned backdrop at the same rectangle.
+    /// An unchanged key and source rectangle reuse the previous capture. The
+    /// backdrop UV remains in screen space while the material plane may fold.
+    pub fn material(
+        &mut self,
+        rect: Rect,
+        key: CacheKey,
+        material: &Material,
+        fold: &Fold,
+    ) -> Result<EffectOutcome, String> {
+        self.material_at(rect, rect, key, material, fold)
+    }
+
+    /// Render a stable captured source at independently changing target geometry.
+    /// Only source changes, explicit invalidation or content revisions recapture.
+    pub fn material_at(
+        &mut self,
+        source: Rect,
+        target: Rect,
+        key: CacheKey,
+        material: &Material,
+        fold: &Fold,
+    ) -> Result<EffectOutcome, String> {
+        let source = capture_request(source, key)?;
+        self.draw_material(source, target, material, fold, 0)
+    }
+
+    /// Cache a complete already drawn region without presenting it. Draw content,
+    /// capture it, then begin a fresh frame before calling `cached_material`.
+    /// Resize and eviction may remove it; a cache-only draw reports that absence.
+    pub fn capture_effect(&mut self, source: Rect, key: CacheKey) -> Result<(), String> {
+        let source = capture_request(source, key)?;
+        effect_status(unsafe { zgpui_effect_capture(self.raw, &source) })
+    }
+
+    /// Transform previously captured complete content, including its text.
+    /// Sampling follows the folded plane; this call never silently recaptures.
+    pub fn cached_material(
+        &mut self,
+        target: Rect,
+        key: CacheKey,
+        material: &Material,
+        fold: &Fold,
+    ) -> Result<EffectOutcome, String> {
+        key.validate().map_err(|error| error.to_string())?;
+        let source = NativeEffectCapture {
+            id: key.id,
+            revision: key.revision,
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+        };
+        self.draw_material(
+            source,
+            target,
+            material,
+            fold,
+            EFFECT_LAYER | EFFECT_CACHE_ONLY,
+        )
+    }
+
+    fn draw_material(
+        &mut self,
+        source: NativeEffectCapture,
+        target: Rect,
+        material: &Material,
+        fold: &Fold,
+        flags: u32,
+    ) -> Result<EffectOutcome, String> {
+        let target = effect_rectangle(target)?;
+        let material = material.validate().map_err(|error| error.to_string())?;
+        let fold = fold.validate().map_err(|error| error.to_string())?;
+        let shader_slot = match material.shader {
+            Some(handle) => registered_shader(self.effect_owner, self.effect_shaders, handle)?,
+            None => 0,
+        };
+        let effect = NativeEffect {
+            source,
+            x: target.x,
+            y: target.y,
+            width: target.w,
+            height: target.h,
+            radius: material.corner_radius,
+            blur_radius: material.blur_radius,
+            saturation: material.saturation,
+            opacity: material.opacity,
+            tint_rgba: material.tint,
+            preset: match material.preset {
+                MaterialPreset::Solid | MaterialPreset::Blur | MaterialPreset::Frosted => 0,
+                MaterialPreset::Mica => 1,
+                MaterialPreset::LiquidGlass => 2,
+                MaterialPreset::Paper => 3,
+                MaterialPreset::Custom => 4,
+            },
+            tint_mix: material.tint_mix,
+            noise: material.noise,
+            refraction: material.refraction,
+            border: material.border_width,
+            highlight: material.highlight,
+            progressive_blur: material.progressive_blur,
+            fold_progress: fold.progress,
+            fold_radians: fold.angle_degrees.to_radians(),
+            fold_perspective: fold.perspective,
+            dim: fold.dimming,
+            fold_anchor: fold.anchor,
+            fold_axis: match fold.axis {
+                FoldAxis::Vertical => 1,
+                FoldAxis::Horizontal => 2,
+            },
+            flags,
+            shader_slot,
+            shader_params: material.parameters,
+        };
+        match unsafe { zgpui_draw_effect(self.raw, &effect) } {
+            0 => Ok(EffectOutcome::Rendered),
+            1 => Ok(EffectOutcome::Fallback),
+            status => effect_status(status).map(|()| EffectOutcome::Rendered),
+        }
     }
     pub fn rect(&mut self, rect: Rect, radius: f32, color: u32) {
         unsafe { zgpui_rect(rect.x, rect.y, rect.w, rect.h, radius, self.color(color)) }

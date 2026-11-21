@@ -23,7 +23,7 @@ Native hosts can use the typed API without parsing JSON or using a terminal.
 From a checkout:
 
 ```sh
-cargo add zgpui --path /path/to/zgpui
+cargo add zgpui --git https://github.com/LIghtJUNction/zgpui.git
 cargo run --example host
 ```
 
@@ -73,6 +73,25 @@ scene API and its default features remain unchanged.
 
 [Native integration and migration](docs/native.md) covers features, system
 libraries, examples and the move from the former native UI package.
+
+### Materials and folding layers
+
+Native hosts can opt into cached in-window materials: frosted glass, progressive
+blur, mica style, liquid glass, paper and custom GLSL fragment functions.
+Captured layers can include text and use a perspective fold. Source revisions,
+quality, texture budgets and redraw timing remain under application control;
+the API reports actual capabilities and flat fallbacks.
+
+```sh
+cargo run --locked --release --features native --example materials
+```
+
+The gallery provides strength, quality and openness controls, two sampling modes
+for folding, live cache counters and a cancellable 1.2-second animation. It waits
+for events when idle. These are application-window effects, not native Windows
+DWM Mica or Apple compositor materials. [Materials and measurement](docs/materials.md)
+explains the cache contract, shader extension point, GPU/fallback distinction
+and reproducible cached-versus-invalidated experiment.
 
 ## Headless pixels
 

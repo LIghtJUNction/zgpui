@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 typedef struct ZgpuiWindow ZgpuiWindow;
+#include "effects.h"
 typedef struct { int kind,x,y,width,height,key,modifiers; char text[4096]; } ZgpuiEvent;
 typedef struct { unsigned char *pixels; int width,height; float advance; } ZgpuiBitmap;
 ZgpuiWindow *zgpui_open(const char *title,int width,int height,char *error,size_t error_size);

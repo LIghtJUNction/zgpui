@@ -80,6 +80,7 @@ def main():
     software = sys.platform == "linux" and args.features == "linux-software"
     if sys.platform == "linux":
         run(sys.executable, "scripts/test_fonts.py", "-v")
+        run(sys.executable, "scripts/test_effects_backend.py")
     if software:
         run(sys.executable, "scripts/test_software.py", "-v")
         run(sys.executable, "scripts/test_software_rect.py")
@@ -139,6 +140,16 @@ def main():
         run(sys.executable, "scripts/check_style.py",
             str(style_output / "default.ppm"), str(style_output / "custom.ppm"))
         if sys.platform == "linux" and not software:
+            run(
+                "xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp",
+                sys.executable, "scripts/test_effects_backend.py", "--real",
+                extra_env={"LIBGL_ALWAYS_SOFTWARE": "1"},
+            )
+            run(
+                "xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp",
+                sys.executable, "scripts/test_effects_backend.py", "--real",
+                extra_env={"LIBGL_ALWAYS_SOFTWARE": "1", "MESA_GL_VERSION_OVERRIDE": "1.1"},
+            )
             legacy_output = output / "native-legacy-style"
             run(
                 "xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp",
