@@ -17,6 +17,13 @@ default = []
 std = []
 native = ["std"]
 linux-software = ["native"]
+bridge = ["std", "dep:zbridge"]
+
+[dependencies]
+zbridge = { git = "https://github.com/LIghtJUNction/zbridge.git", optional = true }
+
+[dev-dependencies]
+serde_json = "1"
 
 [[example]]
 name = "window"

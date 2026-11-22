@@ -13,6 +13,11 @@ use core::fmt::{self, Write};
 pub mod effects;
 pub mod layout;
 
+/// Optional zbridge frontend state and explicit transport callbacks.
+/// Enabling `bridge` requires `std` through the zbridge dependency.
+#[cfg(feature = "bridge")]
+pub mod bridge;
+
 /// Optional native windows, immediate widgets and platform rendering.
 #[cfg(feature = "native")]
 #[allow(unsafe_code)]

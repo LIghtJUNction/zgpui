@@ -3,7 +3,7 @@
 A portable UI core with optional native GPU and CPU windows for Project Z.
 
 zgpui turns bounded scenes into layout and renderer calls. Default builds use
-`no_std` + `alloc`, have **zero Cargo dependencies**, and forbid unsafe code.
+`no_std` + `alloc`, build without external library dependencies, and forbid unsafe code.
 The optional `native` module supplies windows and immediate widgets through
 platform libraries; `linux-software` selects a CPU renderer instead of OpenGL
 on Linux. Applications own their state and event loop.
@@ -115,11 +115,25 @@ Terminal applications can probe capabilities, replace or update a scene, and
 receive opted-in action events. Images are references resolved by the host.
 The complete format, examples and limits are in [the protocol guide](docs/protocol.md).
 
+## Application bridge
+
+Enable `bridge` to use `bridge::BridgeModel` with an explicitly connected zbridge
+host. This feature enables `std` and the optional zbridge dependency. The caller
+supplies a transport callback; the model validates replies and retains the latest
+state, event page and original command receipt. Interrupted commands remain
+uncertain and are never automatically retried.
+
+The adapter provides protocol state for a host's interface. Platform transport,
+window lifecycle and desktop or mobile packaging require their own validation.
+See [bridge integration](docs/bridge.md) for the API and current test scope.
+
 ## Validate and measure
 
 ```sh
 cargo test --locked --lib
 cargo test --locked --doc
+cargo test --locked --features bridge --lib
+cargo test --locked --features bridge --doc
 cargo run --locked --example host
 cargo bench --bench protocol
 ```
