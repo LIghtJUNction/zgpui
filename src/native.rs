@@ -31,6 +31,16 @@ unsafe extern "C" {
     ) -> c_int;
     fn zgpui_begin(width: c_int, height: c_int, background: u32);
     fn zgpui_rect(x: f32, y: f32, width: f32, height: f32, radius: f32, color: u32);
+    fn zgpui_image(
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        image_width: u32,
+        image_height: u32,
+        rgba: *const u8,
+        byte_len: usize,
+    ) -> c_int;
     fn zgpui_polygon(points: *const f32, count: usize, color: u32);
     fn zgpui_line(x1: f32, y1: f32, x2: f32, y2: f32, width: f32, color: u32);
     fn zgpui_text(text: *const c_char, x: f32, y: f32, size: c_int, bold: c_int, color: u32)
@@ -452,6 +462,41 @@ fn requested_font_family(value: &str) -> Result<String, String> {
         );
     }
     Ok(value.trim().to_owned())
+}
+
+fn image_request(rect: Rect, width: u32, height: u32, byte_len: usize) -> Result<(), String> {
+    let expected = (width as usize)
+        .checked_mul(height as usize)
+        .and_then(|pixels| pixels.checked_mul(4))
+        .ok_or("RGBA8 image byte length overflows addressable memory")?;
+    if width == 0
+        || height == 0
+        || width > 16_384
+        || height > 16_384
+        || expected > 256 * 1024 * 1024
+    {
+        return Err(
+            "RGBA8 images require nonzero dimensions at most 16384 and at most 256 MiB".into(),
+        );
+    }
+    if byte_len != expected {
+        return Err("RGBA8 image length must equal width * height * 4 exactly".into());
+    }
+    let right = rect.x + rect.w;
+    let bottom = rect.y + rect.h;
+    if [rect.x, rect.y, rect.w, rect.h, right, bottom]
+        .iter()
+        .any(|value| !value.is_finite())
+        || rect.w <= 0.0
+        || rect.h <= 0.0
+        || right <= rect.x
+        || bottom <= rect.y
+    {
+        return Err(
+            "Image rectangles require finite coordinates and positive finite extents".into(),
+        );
+    }
+    Ok(())
 }
 
 pub struct Window {
@@ -944,6 +989,46 @@ impl Canvas<'_> {
     }
     pub fn rect(&mut self, rect: Rect, radius: f32, color: u32) {
         unsafe { zgpui_rect(rect.x, rect.y, rect.w, rect.h, radius, self.color(color)) }
+    }
+    /// Draw tightly packed, top-down RGBA8 pixels with straight (not premultiplied) alpha.
+    ///
+    /// The image is stretched to `rect` using nearest-neighbor samples at pixel centers,
+    /// clipped to the current clip and window, and alpha-composited over the frame.
+    /// Pixel colors bypass the theme and palette. This call does not retain `rgba`.
+    ///
+    /// Source dimensions must be nonzero, at most 16384 per side, and at most 256 MiB
+    /// in total. The slice length must equal `width * height * 4` exactly. Destination
+    /// coordinates and extents must be finite, with positive width and height.
+    /// Invalid requests draw nothing. A backend failure can leave a partially drawn
+    /// image; redraw the complete frame after an error.
+    ///
+    /// OpenGL reuses one power-of-two upload texture of at most 4 MiB of RGBA texels,
+    /// released when the window closes. The software backend uses the existing frame.
+    pub fn image(
+        &mut self,
+        rect: Rect,
+        width: u32,
+        height: u32,
+        rgba: &[u8],
+    ) -> Result<(), String> {
+        image_request(rect, width, height, rgba.len())?;
+        match unsafe {
+            zgpui_image(
+                rect.x,
+                rect.y,
+                rect.w,
+                rect.h,
+                width,
+                height,
+                rgba.as_ptr(),
+                rgba.len(),
+            )
+        } {
+            0 => Ok(()),
+            -1 => Err("Native renderer rejected the RGBA8 image request".into()),
+            -2 => Err("Native image drawing requires a prepared frame and renderer".into()),
+            _ => Err("Native RGBA8 texture upload or drawing failed".into()),
+        }
     }
     pub fn text(&mut self, text: &str, x: f32, y: f32, size: i32, bold: bool, color: u32) -> f32 {
         self.text_resolved(text, x, y, size, bold, self.color(color))
@@ -1463,6 +1548,40 @@ impl Ui {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn image_request_checks_exact_packed_length_and_source_bounds() {
+        let rect = Rect::new(0., 0., 10., 10.);
+        assert!(image_request(rect, 1, 1, 4).is_ok());
+        assert!(image_request(rect, 3, 2, 24).is_ok());
+        assert!(image_request(rect, 16_384, 4096, 256 * 1024 * 1024).is_ok());
+        for (width, height, length) in [
+            (0, 1, 0),
+            (1, 0, 0),
+            (1, 1, 0),
+            (3, 2, 23),
+            (3, 2, 25),
+            (16_385, 1, 16_385 * 4),
+            (16_384, 4097, 16_384 * 4097 * 4),
+            (u32::MAX, u32::MAX, usize::MAX),
+        ] {
+            assert!(image_request(rect, width, height, length).is_err());
+        }
+    }
+    #[test]
+    fn image_request_rejects_nonfinite_and_degenerate_destinations() {
+        for rect in [
+            Rect::new(f32::NAN, 0., 1., 1.),
+            Rect::new(0., f32::INFINITY, 1., 1.),
+            Rect::new(0., 0., -1., 1.),
+            Rect::new(0., 0., 1., 0.),
+            Rect::new(0., 0., 1., f32::NAN),
+            Rect::new(f32::MAX, 0., f32::MAX, 1.),
+            Rect::new(f32::MAX, 0., 1., 1.),
+        ] {
+            assert!(image_request(rect, 1, 1, 4).is_err());
+        }
+        assert!(image_request(Rect::new(-10.25, -20.5, 0.5, 1.25), 1, 1, 4).is_ok());
+    }
     #[test]
     fn unicode_input_preserves_boundaries() {
         let mut ui = Ui::default();

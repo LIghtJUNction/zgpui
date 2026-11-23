@@ -22,6 +22,10 @@ void zgpui_font_shutdown(void);
 void zgpui_clear_text_cache(void);
 void zgpui_begin(int width,int height,uint32_t background);
 void zgpui_rect(float x,float y,float width,float height,float radius,uint32_t color);
+/* Top-down tightly packed straight-alpha RGBA8; no retained caller memory.
+   0 = drawn/clipped, -1 = invalid request, -2 = no frame/context, -3 = GL failure. */
+int zgpui_image(float x,float y,float width,float height,uint32_t image_width,
+                uint32_t image_height,const unsigned char *rgba,size_t byte_len);
 void zgpui_polygon(const float *points,size_t count,uint32_t color);
 void zgpui_line(float x1,float y1,float x2,float y2,float width,uint32_t color);
 float zgpui_text(const char *text,float x,float y,int size,int bold,uint32_t color);

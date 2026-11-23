@@ -149,27 +149,10 @@ jobs:
           components: rustfmt, clippy
       - run: cargo fmt --all -- --check
       - run: cargo clippy --locked --all-targets -- -D warnings
-      - name: Enforce zero Cargo dependencies
-        shell: bash
+      - name: Enforce the zero-runtime-dependency default core
         run: |
-          python3 - <<'PY'
-          import json
-          import subprocess
-          data = json.loads(subprocess.check_output(
-              ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"],
-              text=True,
-          ))
-          packages = {package["name"]: package for package in data["packages"]}
-          if set(packages) != {"zgpui", "zgpui-raster"}:
-              raise SystemExit("Expected the core and source-only raster companion")
-          if any(package["dependencies"] for package in packages.values()):
-              raise SystemExit("zgpui packages must have zero Cargo dependencies")
-          if packages["zgpui-raster"]["publish"] != []:
-              raise SystemExit("The raster companion must remain source-only")
-          if data["workspace_default_members"] != [packages["zgpui"]["id"]]:
-              raise SystemExit("Default workspace commands must select only the core")
-          print("Zero Cargo dependencies; source-only companion; core-only defaults")
-          PY
+          python3 -m unittest discover -s scripts -p test_dependency_contract.py
+          python3 scripts/check_dependency_contract.py
       - name: Check package excludes ignored artifacts
         shell: bash
         run: |

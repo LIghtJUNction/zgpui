@@ -84,6 +84,7 @@ def main():
     if software:
         run(sys.executable, "scripts/test_software.py", "-v")
         run(sys.executable, "scripts/test_software_rect.py")
+        run(sys.executable, "scripts/test_images.py", "-v")
     if args.package:
         run("cargo", "package", *common)
     target = Path(env.get("CARGO_TARGET_DIR", "target"))
@@ -139,7 +140,17 @@ def main():
         style_output = output / (args.features + "-style")
         run(sys.executable, "scripts/check_style.py",
             str(style_output / "default.ppm"), str(style_output / "custom.ppm"))
+        image = binary.with_name("image_probe.exe" if os.name == "nt" else "image_probe")
+        image_command = [str(image), str(output / (args.features + "-image"))]
+        if sys.platform == "linux":
+            image_command = ["xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp", *image_command]
+        run(*image_command, extra_env={"LIBGL_ALWAYS_SOFTWARE": "1"})
         if sys.platform == "linux" and not software:
+            run(
+                "xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp",
+                sys.executable, "scripts/test_images.py", "--gpu", "-v",
+                extra_env={"LIBGL_ALWAYS_SOFTWARE": "1"},
+            )
             run(
                 "xvfb-run", "-a", "-s", "-screen 0 1280x900x24 -nolisten tcp",
                 sys.executable, "scripts/test_effects_backend.py", "--real",
@@ -168,6 +179,7 @@ def main():
         window_scope += (
             "; real glyph foreground/background and rounded corners; palette/input pixels, "
             "long text, font switch/reset and sequential-window isolation"
+            "; RGBA8 image samples, alpha and palette independence"
         )
     report = {
         "utc": dt.datetime.now(dt.timezone.utc).isoformat(),

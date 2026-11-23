@@ -63,6 +63,102 @@ source directory to `vendor/zgpui`, pin the tested commit and regenerate the
 consumer lockfile. Rust calls use `zgpui::native`; do not retain a `zui` alias.
 Outer source bundles and installer repositories must update their own pins.
 
+## RGBA8 images and preview frames
+
+`Canvas::image` draws caller-owned decoded pixels through the shared native
+renderer. A video or capture application supplies its latest frame and chooses
+the destination rectangle; it does not need to turn every pixel into a widget.
+
+```rust,no_run
+# fn main() -> Result<(), String> {
+# #[cfg(feature = "native")] {
+use zgpui::native::{Rect, Window, colors};
+let mut window = Window::new("image", 640, 400)?;
+let rgba = [255, 0, 0, 255, 0, 255, 0, 128];
+{
+    let mut canvas = window.begin(colors::SURFACE);
+    canvas.image(Rect::new(20., 20., 200., 100.), 2, 1, &rgba)?;
+}
+window.present();
+# }
+# Ok(())
+# }
+```
+
+Input pixels are tightly packed, top-down RGBA8 with straight alpha. There is no
+row padding, color-token interpretation, theme adjustment or retained reference
+to the slice. Each call submits the current bytes, so the caller can reuse the
+buffer when it returns. Premultiplied, BGRA and bottom-up sources require an
+explicit conversion before this boundary.
+
+Both backends stretch the source to the destination with nearest-neighbor
+sampling at pixel centers. The current clip and window bounds apply without
+changing the source mapping. Source alpha blends each sampled color over the
+existing opaque window pixels. Filtering does not blur transparent RGB into
+neighboring pixels. Hosts that need aspect preservation compute a fitted
+rectangle themselves. This API does not manage capture, decoding, frame queues,
+redraw scheduling, color profiles or smooth image filtering.
+
+Dimensions must be nonzero and at most 16384 per side. The exact checked byte
+length must be `width * height * 4`, at most 256 MiB. Destination coordinates,
+width, height and right/bottom extents must be finite; dimensions must be positive
+and produce nondegenerate extents. Invalid requests return `Err` before drawing.
+A fully clipped valid image succeeds without drawing. A native allocation or
+upload error can occur after earlier tiles were drawn; the caller should redraw
+the complete next frame after an error. The software renderer also rejects image
+drawing when no prepared framebuffer exists.
+
+The OpenGL implementation keeps one reusable power-of-two RGBA upload texture,
+limited by the context and to 1024 pixels per side: at most 4 MiB of RGBA texels.
+Larger sources are streamed through that tile. Repeated frames and source size
+changes do not accumulate texture objects. Window destruction deletes the texture;
+failed allocation/upload releases it so the next call can retry. This accounting
+does not bound driver memory or application frame storage. The CPU implementation
+uses the existing window framebuffer and retains no image allocation.
+
+Uploads use the OpenGL 1.1
+[texture subimage](https://learn.microsoft.com/en-us/windows/win32/opengl/gltexsubimage2d)
+and [pixel-store](https://learn.microsoft.com/en-us/windows/win32/opengl/glpixelstorei)
+interfaces. Pixel-store, texture and blend state are restored after the call.
+Tile draw bounds select whole destination pixels before rasterization, avoiding
+subpixel rounding that could select a neighboring tile at a fractional edge.
+
+The public API and its validation live in `src/native.rs`; the shared C boundary
+validation is `native/image.h`. `native/draw.c` owns GL uploads and lifecycle;
+`native/draw_software.c` uses the existing CPU blend operation. These are necessary
+platform renderer implementations of one contract. The portable scene core,
+`no_std` default, dependencies and `raster/` API remain unchanged. The initial
+integration target is zobs's decoded `PreviewFrame`; the application owns that
+integration and its capture/runtime acceptance.
+
+### Image checks
+
+```sh
+python3 scripts/test_images.py -v
+xvfb-run -a python3 scripts/test_images.py --gpu -v
+cargo build --locked --features native --example image_probe
+xvfb-run -a python3 scripts/check_image_window.py \
+  target/debug/examples/image_probe /tmp/zgpui-image-native
+```
+
+Build `image_probe` with `linux-software` to check the CPU window. The capture
+script requires Pillow and an X11 display owned by the test; it reads the actual
+client window through XGetImage and compares every RGB byte to the renderer's
+readback. Add `--rgba /path/frame.rgba --width 640 --height 360` to verify a real
+caller frame. Captures and raw frames belong outside Git.
+
+The C fixtures cover explicit RGBA/alpha colors, top-down orientation, cropped
+source coordinates, fractional enlargement/reduction, exact lengths, invalid
+dimensions, unchanged buffers after invalid requests, empty clips, and close /
+reopen. GL checks additionally force a 64-pixel texture limit, use a real GL 1.1
+context without NPOT support, inject generation/allocation/upload failures, restore
+pixel-store state, and track one live texture over 300 source-size changes.
+ASan, UBSan and LeakSanitizer are enabled by default. Restricted environments that
+cannot run LSan may pass `--no-leak-scan` explicitly; that does not establish a leak
+scan result, and address/undefined checks plus owned texture assertions still run.
+The Rust probe checks the public API, 128 independently calculated image samples,
+and identical image pixels across light/dark themes and a custom palette.
+
 ## Optional window colors and fonts
 
 Version 0.1.3 adds a window-local palette and preferred font family. Existing

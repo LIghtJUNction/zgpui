@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include "effects_software.h"
+#include "image.h"
 
 #define CACHE_COUNT 96
 #define CACHE_BYTES (2u * 1024u * 1024u)
@@ -85,6 +86,31 @@ void zgpui_begin(int width, int height, uint32_t background) {
     size_t count = (size_t)width * (size_t)height;
     for (size_t i = 0; i < count; ++i) pixels[i] = background >> 8;
     frame_ready = 1;
+}
+int zgpui_image(float x, float y, float width, float height, uint32_t image_width,
+                uint32_t image_height, const unsigned char *rgba, size_t byte_len) {
+    if (!image_valid(x, y, width, height, image_width, image_height, rgba, byte_len))
+        return -1;
+    if (!frame_ready || !pixels) return -2;
+    int b[4];
+    if (!bounds(x, y, x + width, y + height, b)) return 0;
+    for (int row = b[1]; row < b[3]; ++row) {
+        double v = ((double)row + 0.5 - y) / height;
+        if (v < 0 || v >= 1) continue;
+        uint32_t sy = (uint32_t)(v * image_height);
+        if (sy >= image_height) sy = image_height - 1;
+        for (int col = b[0]; col < b[2]; ++col) {
+            double u = ((double)col + 0.5 - x) / width;
+            if (u < 0 || u >= 1) continue;
+            uint32_t sx = (uint32_t)(u * image_width);
+            if (sx >= image_width) sx = image_width - 1;
+            const unsigned char *p = rgba + ((size_t)sy * image_width + sx) * 4;
+            uint32_t color = ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) |
+                             ((uint32_t)p[2] << 8) | p[3];
+            blend(col, row, color, 255);
+        }
+    }
+    return 0;
 }
 /* The fully covered part of a scanline needs no distance-field work. */
 static void fill_span(int row, int first, int last, uint32_t color) {

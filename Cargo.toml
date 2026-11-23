@@ -10,7 +10,7 @@ description = "Bounded no_std UI scenes with optional native GPU and CPU windows
 readme = "README.md"
 keywords = ["gui", "ui", "no-std", "layout", "project-z"]
 categories = ["gui", "no-std"]
-include = ["/src/**", "/native/**", "/build.rs", "/examples/**", "/benches/**", "/README.md", "/docs/**", "/LICENSE", "/Cargo.toml", "/scripts/check_x11.py", "/scripts/test_software.py", "/scripts/test_software_rect.py", "/scripts/test_software_x11.py", "/scripts/test_fonts.py", "/scripts/test_gpu_masks.py", "/scripts/check_style.py", "/scripts/check_native.py", "/scripts/test_effects_backend.py", "/scripts/test_materials_report.py", "/scripts/bench_materials.py"]
+include = ["/src/**", "/native/**", "/build.rs", "/examples/**", "/benches/**", "/README.md", "/docs/**", "/LICENSE", "/Cargo.toml", "/scripts/check_x11.py", "/scripts/test_software.py", "/scripts/test_software_rect.py", "/scripts/test_software_x11.py", "/scripts/test_fonts.py", "/scripts/test_gpu_masks.py", "/scripts/check_style.py", "/scripts/check_native.py", "/scripts/test_effects_backend.py", "/scripts/test_materials_report.py", "/scripts/bench_materials.py", "/scripts/test_images.py", "/scripts/check_image_window.py"]
 
 [features]
 default = []
@@ -35,6 +35,10 @@ required-features = ["native"]
 
 [[example]]
 name = "style_probe"
+required-features = ["native"]
+
+[[example]]
+name = "image_probe"
 required-features = ["native"]
 
 [[example]]

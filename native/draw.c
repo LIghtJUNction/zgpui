@@ -11,6 +11,7 @@
 #include <string.h>
 #include <math.h>
 #include "effects_gpu.h"
+#include "image.h"
 #define CACHE_COUNT 96
 #define TEXT_CACHE_BYTES 2097152u
 #define MAX_TEXT_WIDTH 8192
@@ -26,9 +27,17 @@ typedef struct {
 } Text;
 static Text cache[CACHE_COUNT];
 static unsigned long clock_tick;
-static int screen_height;
+static int screen_width,screen_height;
 static size_t texture_bytes;
 static int texture_limit;
+/* Streaming images own one reusable tile, independent of the text/material caches. */
+#define IMAGE_TILE_SIDE 1024
+static GLuint image_texture;
+static int image_texture_width,image_texture_height;
+static void image_texture_drop(void) {
+    if(image_texture)glDeleteTextures(1,&image_texture);
+    image_texture=0;image_texture_width=image_texture_height=0;
+}
 static int power_of_two(int value) {
     if(value<1 || value>MAX_TEXT_WIDTH)return 0;
     int size=1;
@@ -157,7 +166,7 @@ static Text *get_text(const char *text,int size,int bold) {
 static void color(uint32_t value) {glColor4ub((GLubyte)(value>>24),(GLubyte)(value>>16),(GLubyte)(value>>8),(GLubyte)value);}
 void zgpui_begin(int width,int height,uint32_t background) {
     fx_frame_begin(width,height);
-    screen_height=height;
+    screen_width=width;screen_height=height;
     glViewport(0,0,width,height);glMatrixMode(GL_PROJECTION);glLoadIdentity();glOrtho(0,width,height,0,-1,1);
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();glDisable(GL_DEPTH_TEST);glDisable(GL_CULL_FACE);
     glDisable(GL_SCISSOR_TEST);glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
@@ -191,6 +200,92 @@ static void quad(float x,float y,float w,float h,float u0,float v0,float u1,floa
     if(w<=0||h<=0)return;
     glTexCoord2f(u0,v0);glVertex2f(x,y);glTexCoord2f(u1,v0);glVertex2f(x+w,y);
     glTexCoord2f(u1,v1);glVertex2f(x+w,y+h);glTexCoord2f(u0,v1);glVertex2f(x,y+h);
+}
+int zgpui_image(float x,float y,float width,float height,uint32_t image_width,
+                uint32_t image_height,const unsigned char *rgba,size_t byte_len) {
+    if(!image_valid(x,y,width,height,image_width,image_height,rgba,byte_len))return -1;
+    if(screen_width<=0 || screen_height<=0)return -2;
+    double left=0,top=0,right=screen_width,bottom=screen_height;
+    if(glIsEnabled(GL_SCISSOR_TEST)){
+        GLint clip[4];glGetIntegerv(GL_SCISSOR_BOX,clip);
+        left=fmax(left,clip[0]);right=fmin(right,(double)clip[0]+clip[2]);
+        top=fmax(top,(double)screen_height-clip[1]-clip[3]);
+        bottom=fmin(bottom,(double)screen_height-clip[1]);
+    }
+    if(right<=left || bottom<=top || x>=right || y>=bottom ||
+       (double)x+width<=left || (double)y+height<=top)return 0;
+    int limit=native_texture_limit();if(!limit)return -2;
+    if(limit>IMAGE_TILE_SIDE)limit=IMAGE_TILE_SIDE;
+    int tile_width=power_of_two(image_width<(uint32_t)limit?(int)image_width:limit);
+    int tile_height=power_of_two(image_height<(uint32_t)limit?(int)image_height:limit);
+    /* Isolate owned uploads from prior errors and restore texture/blend/pixel-store
+       state so following masks, materials and images keep their own contracts. */
+    for(int i=0;i<16 && glGetError()!=GL_NO_ERROR;i++){}
+    glPushAttrib(GL_TEXTURE_BIT|GL_ENABLE_BIT|GL_COLOR_BUFFER_BIT|GL_CURRENT_BIT);
+    if(glGetError()!=GL_NO_ERROR)return -3;
+    glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
+    if(glGetError()!=GL_NO_ERROR){glPopAttrib();return -3;}
+    int status=0;
+    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH,(GLint)image_width);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS,0);glPixelStorei(GL_UNPACK_SKIP_ROWS,0);
+    if(!image_texture){
+        glGenTextures(1,&image_texture);
+        if(!image_texture || glGetError()!=GL_NO_ERROR){status=-3;goto done;}
+    }
+    glBindTexture(GL_TEXTURE_2D,image_texture);
+    if(image_texture_width<tile_width || image_texture_height<tile_height){
+        if(tile_width<image_texture_width)tile_width=image_texture_width;
+        if(tile_height<image_texture_height)tile_height=image_texture_height;
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,tile_width,tile_height,0,
+                     GL_RGBA,GL_UNSIGNED_BYTE,NULL);
+        if(glGetError()!=GL_NO_ERROR){status=-3;goto done;}
+        image_texture_width=tile_width;image_texture_height=tile_height;
+    }
+    glEnable(GL_TEXTURE_2D);glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);glColor4ub(255,255,255,255);
+    for(uint32_t sy=0;sy<image_height;sy+=(uint32_t)tile_height){
+        int rows=(int)(image_height-sy);if(rows>tile_height)rows=tile_height;
+        double y0=(double)y+(double)height*sy/image_height;
+        double y1=(double)y+(double)height*(sy+(uint32_t)rows)/image_height;
+        if(y1<=top || y0>=bottom)continue;
+        /* Rasterize whole destination pixels. Fractional tile edges can round to
+           the other side of a pixel center in GL's subpixel rasterizer, selecting
+           the previous tile's last texel. UVs still use the original image map. */
+        int first_y=(int)ceil(fmax(y0,top)-0.5),last_y=(int)ceil(fmin(y1,bottom)-0.5);
+        if(first_y>=last_y)continue;
+        for(uint32_t sx=0;sx<image_width;sx+=(uint32_t)tile_width){
+            int columns=(int)(image_width-sx);if(columns>tile_width)columns=tile_width;
+            double x0=(double)x+(double)width*sx/image_width;
+            double x1=(double)x+(double)width*(sx+(uint32_t)columns)/image_width;
+            if(x1<=left || x0>=right)continue;
+            int first_x=(int)ceil(fmax(x0,left)-0.5),last_x=(int)ceil(fmin(x1,right)-0.5);
+            if(first_x>=last_x)continue;
+            glTexSubImage2D(GL_TEXTURE_2D,0,0,0,columns,rows,GL_RGBA,GL_UNSIGNED_BYTE,
+                            rgba+((size_t)sy*image_width+sx)*4);
+            if(glGetError()!=GL_NO_ERROR){status=-3;goto done;}
+            double u0=(((double)first_x-x)*image_width/width-sx)/image_texture_width;
+            double u1=(((double)last_x-x)*image_width/width-sx)/image_texture_width;
+            double v0=(((double)first_y-y)*image_height/height-sy)/image_texture_height;
+            double v1=(((double)last_y-y)*image_height/height-sy)/image_texture_height;
+            glBegin(GL_QUADS);
+            glTexCoord2d(u0,v0);glVertex2i(first_x,first_y);
+            glTexCoord2d(u1,v0);glVertex2i(last_x,first_y);
+            glTexCoord2d(u1,v1);glVertex2i(last_x,last_y);
+            glTexCoord2d(u0,v1);glVertex2i(first_x,last_y);
+            glEnd();
+            if(glGetError()!=GL_NO_ERROR){status=-3;goto done;}
+        }
+    }
+done:
+    if(status)image_texture_drop();
+    glPopClientAttrib();glPopAttrib();
+    return status;
 }
 void zgpui_rect(float x,float y,float width,float height,float radius,uint32_t value) {
     if(width<=0||height<=0)return;
@@ -255,5 +350,5 @@ float zgpui_measure(const char *text,int size,int bold){
 void zgpui_clip(int x,int y,int width,int height){glEnable(GL_SCISSOR_TEST);glScissor(x,screen_height-y-height,width>0?width:0,height>0?height:0);}
 void zgpui_unclip(void){glDisable(GL_SCISSOR_TEST);}
 void zgpui_clear_text_cache(void){for(int i=0;i<CACHE_COUNT;i++)drop(&cache[i]);clock_tick=0;}
-void zgpui_gpu_destroy(void){fx_destroy();zgpui_clear_text_cache();for(int i=1;i<=64;i++){if(rounded_masks[i].texture)glDeleteTextures(1,&rounded_masks[i].texture);memset(&rounded_masks[i],0,sizeof(rounded_masks[i]));}texture_limit=0;}
+void zgpui_gpu_destroy(void){fx_destroy();zgpui_clear_text_cache();image_texture_drop();for(int i=1;i<=64;i++){if(rounded_masks[i].texture)glDeleteTextures(1,&rounded_masks[i].texture);memset(&rounded_masks[i],0,sizeof(rounded_masks[i]));}texture_limit=0;screen_width=screen_height=0;}
 const char *zgpui_gpu_info(void){const GLubyte *s=glGetString(GL_RENDERER);return s?(const char*)s:"unknown";}

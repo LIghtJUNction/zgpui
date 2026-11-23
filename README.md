@@ -74,6 +74,12 @@ scene API and its default features remain unchanged.
 [Native integration and migration](docs/native.md) covers features, system
 libraries, examples and the move from the former native UI package.
 
+`Canvas::image` accepts bounded, tightly packed RGBA8 frames. Both native backends
+handle nearest-neighbor scaling, clipping and straight-alpha blending while
+preserving the source colors. The caller retains ownership of capture and frame
+timing; the renderer does not retain the input buffer. See
+[image contracts and pixel checks](docs/native.md#rgba8-images-and-preview-frames).
+
 Linux font fallback also supports fixed-size bitmap strikes, scaled to the
 requested text size. Color bitmap fonts such as Noto Color Emoji render as
 grayscale coverage through the shared native and headless font implementation.
