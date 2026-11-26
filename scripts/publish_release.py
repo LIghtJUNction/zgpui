@@ -9,6 +9,8 @@ import re
 import subprocess
 import time
 import tomllib
+
+from release_package import build_package
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -139,9 +141,10 @@ def main() -> None:
     package = tomllib.loads(Path("Cargo.toml").read_text(encoding="utf-8"))["package"]
     if package["name"] != "zgpui" or package["version"] != version:
         raise ValueError("Package identity differs from the candidate outputs")
-    run("cargo", "package", "--locked")
-    crate = Path("target/package") / f"zgpui-{version}.crate"
+    source = Path(require_environment("PACKAGE_SOURCE")).resolve()
+    crate = build_package(source)
     checksum = hashlib.sha256(crate.read_bytes()).hexdigest()
+    require_matching_checksum(checksum, require_environment("VALIDATED_CRATE_SHA256"), "Rebuilt source crate")
     existing = registry_checksum(version)
     if existing is not None:
         require_matching_checksum(existing, checksum, "Registry crate")
@@ -165,7 +168,7 @@ def main() -> None:
     run("git", "push", "origin", "refs/tags/" + tag)
 
     if existing is None:
-        published = subprocess.run(["cargo", "publish", "--locked"], check=False)
+        published = subprocess.run(["cargo", "publish", "--locked", "--registry", "crates-io", "-p", "zgpui"], cwd=source, check=False)
         for attempt in range(12):
             existing = registry_checksum(version)
             if existing is not None:

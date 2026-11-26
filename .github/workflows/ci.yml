@@ -8,6 +8,10 @@ on:
         required: false
         type: string
   workflow_call:
+    outputs:
+      crate_sha256:
+        description: SHA256 of the source crate built and tested on each native platform
+        value: ${{ jobs.quality.outputs.crate_sha256 }}
     inputs:
       ref:
         description: Exact candidate commit to validate
@@ -44,6 +48,7 @@ jobs:
         run: cargo run --locked --example host
 
   native:
+    needs: quality
     name: Native ${{ matrix.features }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -83,7 +88,21 @@ jobs:
             sudo apt-get install -y libgl1-mesa-dev
           fi
       - name: Validate the exact native candidate
-        run: python scripts/check_native.py --features ${{ matrix.features }} --window --package
+        run: python scripts/check_native.py --features ${{ matrix.features }} --window
+      - name: Download the source crate built by the quality job
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          artifact-ids: ${{ needs.quality.outputs.artifact_id }}
+          path: ${{ runner.temp }}/zg-crate
+          merge-multiple: true
+      - name: Build and test the exact packaged native sources
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ needs.quality.outputs.crate_sha256 }}
+          NATIVE_FEATURES: ${{ matrix.features }}
+        run: |
+          git show "$GITHUB_SHA:scripts/release_package.py" > "$RUNNER_TEMP/release_package.py"
+          python "$RUNNER_TEMP/release_package.py" verify --directory "$RUNNER_TEMP/zg-crate" --sha256 "$EXPECTED_SHA256" --features "$NATIVE_FEATURES" --destination "$RUNNER_TEMP/zg-unpacked"
       - name: Preserve native evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -137,11 +156,15 @@ jobs:
 
   quality:
     name: Formatting, dependencies and package
+    outputs:
+      crate_sha256: ${{ steps.package.outputs.sha256 }}
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
@@ -153,18 +176,41 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts -p test_dependency_contract.py
           python3 scripts/check_dependency_contract.py
-      - name: Check package excludes ignored artifacts
+      - name: Check out the pinned Project Z release projection
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: LIghtJUNction/project-z
+          ref: f1e2243bb0d4f721b617b77d6f19924cd81c8303
+          path: artifacts/project-z-release
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitmodules
+            /scripts/release_projection.py
+            /scripts/cargo_versions.py
+      - name: Build the registry source crate from the candidate
+        id: package
         shell: bash
         run: |
+          mkdir -p "$RUNNER_TEMP/zg-driver"
+          git show "$GITHUB_SHA:scripts/release_package.py" > "$RUNNER_TEMP/zg-driver/release_package.py"
+          python "$RUNNER_TEMP/zg-driver/release_package.py" stage --candidate "$(git rev-parse HEAD)" --project-z artifacts/project-z-release --destination "$RUNNER_TEMP/zg-projection"
+      - name: Check package excludes ignored artifacts
+        shell: bash
+        env:
+          PACKAGE_SOURCE: ${{ steps.package.outputs.source }}
+          VALIDATED_CRATE: ${{ steps.package.outputs.crate }}
+        run: |
           python3 - <<'PY'
-          from pathlib import Path
-          import subprocess
-          fixture = Path("artifacts/package-boundary-fixture/nested")
+          from pathlib import Path, PurePosixPath
+          import os, subprocess, tarfile
+          source = Path(os.environ["PACKAGE_SOURCE"])
+          fixture = source / "artifacts/package-boundary-fixture/nested"
           fixture.mkdir(parents=True, exist_ok=True)
           for name in ("README.md", "LICENSE"):
               (fixture / name).write_text("Ignored package boundary fixture\n")
           files = set(subprocess.check_output(
-              ["cargo", "package", "--locked", "--list"], text=True,
+              ["cargo", "package", "--locked", "--list"], cwd=source, text=True,
           ).splitlines())
           leaked = sorted(path for path in files if path.startswith(("artifacts/", "raster/")))
           required = {"README.md", "LICENSE", "build.rs", "src/native.rs",
@@ -173,10 +219,24 @@ jobs:
                       "scripts/check_x11.py", "scripts/test_software.py", "scripts/test_fonts.py",
                       "scripts/test_software_x11.py",
                       "scripts/check_native.py"}
-          missing = sorted(required - files)
+          with tarfile.open(os.environ["VALIDATED_CRATE"], "r:gz") as archive:
+              packed = {"/".join(PurePosixPath(item.name).parts[1:]) for item in archive.getmembers()}
+          leaked += sorted(path for path in packed if path.startswith(("artifacts/", "raster/")))
+          missing = sorted((required - files) | (required - packed))
           if leaked or missing:
               raise SystemExit(f"Invalid package contents: leaked={leaked}, missing={missing}")
           print("Core and native sources included; ignored artifacts excluded")
           PY
       - run: python3 -m unittest discover -s scripts -p test_materials_report.py
-      - run: cargo package --locked
+      - name: Verify lock projection and archive checks
+        shell: bash
+        run: |
+          git show "$GITHUB_SHA:scripts/test_release_package.py" > "$RUNNER_TEMP/zg-driver/test_release_package.py"
+          python -m unittest discover -s "$RUNNER_TEMP/zg-driver" -p test_release_package.py
+      - name: Share the verified crate with native jobs
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: zgpui-source-crate-${{ github.run_attempt }}
+          path: ${{ steps.package.outputs.crate }}
+          if-no-files-found: error

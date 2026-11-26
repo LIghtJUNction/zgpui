@@ -124,8 +124,6 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
       CANDIDATE_SHA: ${{ needs.prepare.outputs.candidate }}
-      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -134,5 +132,32 @@ jobs:
       - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
           toolchain: stable
+      - name: Check out the pinned Project Z release projection
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: LIghtJUNction/project-z
+          ref: f1e2243bb0d4f721b617b77d6f19924cd81c8303
+          path: artifacts/project-z-release
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitmodules
+            /scripts/release_projection.py
+            /scripts/cargo_versions.py
+      - name: Build the registry source crate from the candidate
+        id: package
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/zg-driver"
+          git show "$GITHUB_SHA:scripts/release_package.py" > "$RUNNER_TEMP/zg-driver/release_package.py"
+          python "$RUNNER_TEMP/zg-driver/release_package.py" stage --candidate "$(git rev-parse HEAD)" --project-z artifacts/project-z-release --destination "$RUNNER_TEMP/zg-projection"
       - name: Verify identity and finish publication
-        run: python3 scripts/publish_release.py
+        shell: bash
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_SOURCE: ${{ steps.package.outputs.source }}
+          VALIDATED_CRATE_SHA256: ${{ needs.validate.outputs.crate_sha256 }}
+        run: |
+          git show "$GITHUB_SHA:scripts/publish_release.py" > "$RUNNER_TEMP/zg-driver/publish_release.py"
+          python "$RUNNER_TEMP/zg-driver/publish_release.py"

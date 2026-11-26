@@ -55,6 +55,10 @@ def main():
     parser.add_argument("--features", choices=("native", "linux-software"), default="native")
     parser.add_argument("--window", action="store_true", help="also open bounded native probe windows")
     parser.add_argument("--package", action="store_true", help="verify the source crate with this backend")
+    parser.add_argument("--package-source", type=Path,
+                        help="registry projection produced by release_package.py stage")
+    parser.add_argument("--project-z", type=Path, default=ROOT.parent,
+                        help="checkout containing the pinned Project Z projection helper")
     parser.add_argument("--offline", action="store_true")
     args = parser.parse_args()
     env = environment()
@@ -86,7 +90,20 @@ def main():
         run(sys.executable, "scripts/test_software_rect.py")
         run(sys.executable, "scripts/test_images.py", "-v")
     if args.package:
-        run("cargo", "package", *common)
+        from release_package import stage, unversioned_git
+        import tomllib
+        candidate = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        with tempfile.TemporaryDirectory(prefix="zgpui-native-package-") as folder:
+            if args.package_source:
+                source = args.package_source.resolve()
+                report = json.loads((source.parent / "projection.json").read_text(encoding="utf-8"))
+                if report["source_commit"] != candidate:
+                    raise ValueError("Registry projection is for a different candidate")
+            elif args.offline and unversioned_git(tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))):
+                raise ValueError("Offline packaging needs --package-source from release_package.py stage")
+            else:
+                source = stage(ROOT, candidate, args.project_z.resolve(), Path(folder) / "projection")
+            run("cargo", "package", *common, "-p", "zgpui", "--manifest-path",str(source / "Cargo.toml"))
     target = Path(env.get("CARGO_TARGET_DIR", "target"))
     if not target.is_absolute():
         target = ROOT / target
