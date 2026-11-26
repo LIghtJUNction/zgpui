@@ -72,6 +72,12 @@ ZgpuiWindow *zgpui_open(const char *title,int width,int height,char *error,size_
     if(w->ic)XSetICFocus(w->ic);
     XMapWindow(w->display,w->window);XFlush(w->display);return w;
 }
+void zgpui_set_min_size(ZgpuiWindow *w,int width,int height){
+    XSizeHints hints={0};long supplied=0;
+    XGetWMNormalHints(w->display,w->window,&hints,&supplied);
+    hints.flags|=PMinSize;hints.min_width=width;hints.min_height=height;
+    XSetWMNormalHints(w->display,w->window,&hints);XFlush(w->display);
+}
 void zgpui_close(ZgpuiWindow *w){
     if(!w)return;
     if(w->display){

@@ -1,5 +1,8 @@
 //! Native GPU windows and small immediate widgets. No third-party Rust crates.
 //! All window, event and OpenGL work stays on the thread that created the window.
+mod pane_layout;
+pub use pane_layout::{GridLayout, PaneAreas, PaneLayout};
+
 use crate::effects::{
     CacheKey, EffectBudget, EffectCapabilities, EffectOutcome, EffectStats, Fold, FoldAxis,
     MAX_SHADER_SLOTS, MAX_SHADER_SOURCE_BYTES, Material, MaterialPreset, Quality, ShaderHandle,
@@ -20,6 +23,7 @@ unsafe extern "C" {
     ) -> *mut c_void;
     fn zgpui_close(window: *mut c_void);
     fn zgpui_event(window: *mut c_void, event: *mut NativeEvent, timeout: c_int) -> c_int;
+    fn zgpui_set_min_size(window: *mut c_void, width: c_int, height: c_int);
     fn zgpui_size(window: *mut c_void, width: *mut c_int, height: *mut c_int);
     fn zgpui_swap(window: *mut c_void);
     fn zgpui_clipboard(window: *mut c_void, text: *const c_char);
@@ -748,6 +752,16 @@ impl Window {
         self.font_family = family;
         Ok(())
     }
+    /// Change the window manager's minimum client-area dimensions after opening.
+    /// Use smaller minimums than the launch size for a responsive window.
+    pub fn set_min_size(&mut self, width: i32, height: i32) -> Result<(), String> {
+        if !(1..=32767).contains(&width) || !(1..=32767).contains(&height) {
+            return Err("minimum window dimensions must be between 1 and 32767".into());
+        }
+        unsafe { zgpui_set_min_size(self.raw, width, height) };
+        Ok(())
+    }
+
     pub fn size(&self) -> (f32, f32) {
         let (mut width, mut height) = (0, 0);
         unsafe { zgpui_size(self.raw, &mut width, &mut height) };

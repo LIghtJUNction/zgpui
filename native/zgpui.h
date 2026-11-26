@@ -11,6 +11,7 @@ void zgpui_close(ZgpuiWindow *window);
 int zgpui_event(ZgpuiWindow *window,ZgpuiEvent *event,int timeout_ms);
 void zgpui_swap(ZgpuiWindow *window);
 void zgpui_clipboard(ZgpuiWindow *window,const char *text);
+void zgpui_set_min_size(ZgpuiWindow *window,int width,int height);
 void zgpui_size(ZgpuiWindow *window,int *width,int *height);
 /* Copies the family; failure leaves the old font and text cache intact. */
 int zgpui_set_font_family(ZgpuiWindow *window,const char *family,char *error,size_t error_size);

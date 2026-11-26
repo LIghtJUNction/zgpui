@@ -48,14 +48,26 @@ ZgpuiWindow *zgpui_open(const char *title,int width,int height,char *error,size_
     }
 }
 void zgpui_close(ZgpuiWindow *w){if(!w)return;@autoreleasepool{if(w->context){[w->context makeCurrentContext];zgpui_gpu_destroy();[NSOpenGLContext clearCurrentContext];[w->context clearDrawable];[w->context release];}if(w->window){[w->window close];[w->window release];}free(w);zgpui_font_shutdown();}}
+void zgpui_set_min_size(ZgpuiWindow *w,int width,int height){
+    @autoreleasepool { [w->window setContentMinSize:NSMakeSize(width,height)]; }
+}
 void zgpui_size(ZgpuiWindow *w,int *width,int *height){*width=w->width;*height=w->height;}
 void zgpui_swap(ZgpuiWindow *w){[w->context flushBuffer];}
 static int key(unsigned short code){switch(code){case 48:return 9;case 36:case 76:return 13;case 53:return 27;case 51:return 8;case 117:return 127;case 123:return 1001;case 124:return 1002;case 126:return 1003;case 125:return 1004;case 115:return 1005;case 119:return 1006;default:return 0;}}
+static int resized(ZgpuiWindow *w,ZgpuiEvent *out){
+    NSRect bounds=[[w->window contentView]bounds];
+    if((int)bounds.size.width==w->width && (int)bounds.size.height==w->height)return 0;
+    w->width=(int)bounds.size.width;w->height=(int)bounds.size.height;
+    [w->context update];out->kind=6;return 1;
+}
 int zgpui_event(ZgpuiWindow *w,ZgpuiEvent *out,int timeout){
     @autoreleasepool{
         memset(out,0,sizeof(*out));if(![w->window isVisible]){out->kind=7;return 1;}
-        NSEvent *event=[NSApp nextEventMatchingMask:NSEventMaskAny untilDate:[NSDate dateWithTimeIntervalSinceNow:timeout/1000.0] inMode:NSDefaultRunLoopMode dequeue:YES];
-        NSRect bounds=[[w->window contentView]bounds];if((int)bounds.size.width!=w->width||(int)bounds.size.height!=w->height){w->width=(int)bounds.size.width;w->height=(int)bounds.size.height;[w->context update];out->kind=6;if(event)[NSApp sendEvent:event];return 1;}
+        // A resize gets its own frame. Leave the next pointer or key event in the queue.
+        if(resized(w,out))return 1;
+        NSEvent *event=[NSApp nextEventMatchingMask:NSEventMaskAny untilDate:[NSDate dateWithTimeIntervalSinceNow:timeout/1000.0] inMode:NSDefaultRunLoopMode dequeue:NO];
+        if(resized(w,out))return 1;
+        if(event)event=[NSApp nextEventMatchingMask:NSEventMaskAny untilDate:[NSDate distantPast] inMode:NSDefaultRunLoopMode dequeue:YES];
         if(!event)return 0;
         NSPoint point=[[w->window contentView]convertPoint:[event locationInWindow] fromView:nil];out->x=(int)point.x;out->y=w->height-(int)point.y;
         switch([event type]){

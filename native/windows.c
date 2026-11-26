@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <wchar.h>
 #include "zgpui.h"
-struct ZgpuiWindow{HWND window;HDC dc;HGLRC context;int width,height,closed;ZgpuiEvent pending;};
+struct ZgpuiWindow{HWND window;HDC dc;HGLRC context;int width,height,closed,min_width,min_height;ZgpuiEvent pending;};
 static wchar_t font_family[LF_FACESIZE]=L"Segoe UI";
 static HFONT make_font(const wchar_t *family,int size,int bold){
     return CreateFontW(-size,0,0,0,bold?FW_SEMIBOLD:FW_NORMAL,FALSE,FALSE,FALSE,
@@ -51,6 +51,15 @@ static LRESULT CALLBACK procedure(HWND h,UINT message,WPARAM wp,LPARAM lp){
     ZgpuiWindow *w=(ZgpuiWindow*)GetWindowLongPtrW(h,GWLP_USERDATA);
     if(message==WM_NCCREATE){w=(ZgpuiWindow*)((CREATESTRUCTW*)lp)->lpCreateParams;SetWindowLongPtrW(h,GWLP_USERDATA,(LONG_PTR)w);}
     if(w){
+        if(message==WM_GETMINMAXINFO && w->min_width>0){
+            RECT frame={0,0,w->min_width,w->min_height};
+            if(AdjustWindowRectEx(&frame,(DWORD)GetWindowLongPtrW(h,GWL_STYLE),GetMenu(h)!=NULL,(DWORD)GetWindowLongPtrW(h,GWL_EXSTYLE))){
+                MINMAXINFO *limits=(MINMAXINFO*)lp;
+                limits->ptMinTrackSize.x=frame.right-frame.left;
+                limits->ptMinTrackSize.y=frame.bottom-frame.top;
+                return 0;
+            }
+        }
         if(message==WM_CLOSE){w->closed=1;return 0;}
         if(message==WM_SIZE){w->width=LOWORD(lp);w->height=HIWORD(lp);w->pending.kind=6;return 0;}
         if(message==WM_PAINT){PAINTSTRUCT p;BeginPaint(h,&p);EndPaint(h,&p);w->pending.kind=6;return 0;}
@@ -89,6 +98,7 @@ ZgpuiWindow *zgpui_open(const char *title,int width,int height,char *error,size_
     w->width=width;w->height=height;ShowWindow(w->window,SW_SHOW);UpdateWindow(w->window);return w;
 }
 void zgpui_close(ZgpuiWindow *w){if(!w)return;if(w->context){wglMakeCurrent(w->dc,w->context);zgpui_gpu_destroy();wglMakeCurrent(NULL,NULL);wglDeleteContext(w->context);}if(w->dc)ReleaseDC(w->window,w->dc);if(w->window)DestroyWindow(w->window);free(w);zgpui_font_shutdown();}
+void zgpui_set_min_size(ZgpuiWindow *w,int width,int height){w->min_width=width;w->min_height=height;}
 void zgpui_size(ZgpuiWindow *w,int *width,int *height){*width=w->width;*height=w->height;}
 void zgpui_swap(ZgpuiWindow *w){SwapBuffers(w->dc);}
 int zgpui_event(ZgpuiWindow *w,ZgpuiEvent *out,int timeout){

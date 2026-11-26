@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.9
+
+- Native windows can set a minimum client size independently of the launch size.
+- Native hosts can fit and stack two panes, stretch a preview, scroll overflow,
+  and wrap equal-width controls according to the available container width.
+  See [responsive layout](docs/native.md#resizing-the-window-and-its-contents).
+
 ## 0.1.7
 
 ### Added

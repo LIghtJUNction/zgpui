@@ -23,6 +23,36 @@ Native builds use a C bridge and system libraries; unsafe FFI is confined to
 the `native` module. Enabling a native window does not change the ZUI/1 scene
 protocol or implement an application event loop.
 
+## Resizing the window and its contents
+
+A native window can open at desktop size and shrink to a compact layout. For example,
+call `window.set_min_size(320, 240)?` after `Window::new` to give the window manager
+a lower minimum client size. The initial size and minimum size are independent.
+
+Measure the inner viewport on every frame, including the frame for `Event::Resize`.
+Subtract fixed headers and margins from `canvas.width` and `canvas.height` first.
+`PaneLayout::widths()` then supplies the widths at which each pane can measure
+its text and controls. A `GridLayout` fits equal-width cells into either pane and
+returns the height of all its rows.
+
+```rust,ignore
+let layout = PaneLayout::new(viewport, 260., 400., 16.);
+let (_, main_width) = layout.widths();
+let controls = GridLayout::new(Rect::new(0., 0., main_width, 0.), 140., 3, 8.);
+let controls_height = controls.height(6, 36.);
+let panes = layout.arrange(240., controls_height + 180., scroll_y, false);
+scroll_y = panes.scroll_y;
+let preview_height = panes.main.h - controls_height;
+```
+
+Wide windows give both panes the available height. Narrow windows stack the panes
+and give extra height to the main pane. When their measured content exceeds the
+viewport, `max_scroll` is the distance to the bottom. Pass wheel changes into the
+next call to `arrange` and retain its clamped `scroll_y`. The returned rectangles
+already include the scroll offset. Use those same coordinates for drawing and
+widgets, and keep widget IDs stable across resizes. See the runnable
+[window example](../examples/window.rs).
+
 ## Update a consumer
 
 Replace the old dependency key, package selection and vendor gitlink together:
