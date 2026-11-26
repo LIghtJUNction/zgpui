@@ -89,9 +89,11 @@ fn scene(
     rgba: &[u8],
 ) -> Result<(Rect, Vec<u8>), String> {
     let scale = (592. / width as f32).min(333. / height as f32);
+    // Keep the generated gradient away from GL_NEAREST texel boundaries. A
+    // quarter-pixel offset retains fractional scaling and exact RGB comparisons.
     let rect = Rect::new(
-        24. + (592. - width as f32 * scale) * 0.5,
-        64. + (333. - height as f32 * scale) * 0.5,
+        24.25 + (592. - width as f32 * scale) * 0.5,
+        64.25 + (333. - height as f32 * scale) * 0.5,
         width as f32 * scale,
         height as f32 * scale,
     );
